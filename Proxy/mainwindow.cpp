@@ -3,11 +3,13 @@
 
 #include <thread>
 #include <Windows.h>
+#include <tlhelp32.h>
 #include <iostream>
 #include <QThread>
 
 
 #include "Packet.h"
+#include "ManualMap.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -88,3 +90,76 @@ __exit:
     }
     DbgPrint("Pipe server quit.");
 }
+
+void MainWindow::on_menu_Inject_triggered()
+{
+    HANDLE hFile;
+    OPENFILENAMEW ofn;
+    WCHAR szFile[260];
+
+    // Initialize OPENFILENAME
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = NULL;
+    ofn.lpstrFile = szFile;
+    // Set lpstrFile[0] to '\0' so that GetOpenFileName does not
+    // use the contents of szFile to initialize itself.
+    ofn.lpstrFile[0] = '\0';
+    ofn.nMaxFile = sizeof(szFile);
+    ofn.lpstrFilter = L"\0";
+    ofn.nFilterIndex = 1;
+    ofn.lpstrFileTitle = NULL;
+    ofn.nMaxFileTitle = 0;
+    ofn.lpstrInitialDir = NULL;
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+
+    // Display the Open dialog box.
+    if (FALSE == GetOpenFileName(&ofn)) {
+        DbgPrint("Failed to open file.");
+        return;
+    }
+
+    DbgPrint("Injecting:" + QString::fromStdWString(ofn.lpstrFile));
+
+    PROCESSENTRY32W PE32{ 0 };
+    PE32.dwSize = sizeof(PE32);
+    HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if (hSnap == INVALID_HANDLE_VALUE)
+    {
+        DbgPrint("CreateToolhelp32Snapshot() " + QString::number(GetLastError()));
+        return;
+    }
+
+    DWORD PID = 0;
+    BOOL bRet = Process32FirstW(hSnap, &PE32);
+    while (bRet)
+    {
+        if (0 == wcsncmp(PE32.szExeFile, L"Gw2-64.exe", sizeof(PE32.szExeFile)))
+        {
+            PID = PE32.th32ProcessID;
+            break;
+        }
+        bRet = Process32NextW(hSnap, &PE32);
+    }
+
+    CloseHandle(hSnap);
+
+    HANDLE hProc = ::OpenProcess(PROCESS_ALL_ACCESS, FALSE, PID);
+    if (!hProc)
+    {
+        DbgPrint("Failed to open process: " + QString::number(GetLastError()));
+        return;
+    }
+
+    if (!IsCorrectTargetArchitecture(hProc))
+    {
+        DbgPrint("Invalid target proccess architecture.");
+        CloseHandle(hProc);
+        return;
+    }
+
+    CustomMap(hProc, ofn.lpstrFile);
+    CloseHandle(hProc);
+    return;
+}
+

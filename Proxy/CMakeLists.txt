@@ -19,9 +19,11 @@ set(TS_FILES Proxy_en_US.ts)
 set(PROJECT_SOURCES
         main.cpp
         mainwindow.cpp
+        ManualMap.cpp
         Packet.cpp
         Packet.h
         mainwindow.h
+        ManualMap.h
         mainwindow.ui
         ${TS_FILES}
 )
