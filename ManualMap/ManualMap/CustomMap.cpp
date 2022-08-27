@@ -238,28 +238,6 @@ void __stdcall Shellcode(PSHELLCODE_DATA pShellcodeData) {
 	}
 
 	// Fix section perms
-	/*pSection = IMAGE_FIRST_SECTION(pNTHeader);
-	for (INT x = 0; x < pFileHeader->NumberOfSections; ++x, ++pSection) {
-		DWORD dwNewProtect = 0;
-		DWORD dwOldProtect = 0;
-
-		DWORD ProtectionFlags[2][2][2] = {
-			{
-				{PAGE_NOACCESS, PAGE_WRITECOPY},
-				{PAGE_READONLY, PAGE_READWRITE},
-			},
-			{
-				{PAGE_EXECUTE, PAGE_EXECUTE_WRITECOPY},
-				{PAGE_EXECUTE_READ, PAGE_EXECUTE_READWRITE},
-			},
-		};
-
-		WORD executable = (pSection->Characteristics & IMAGE_SCN_MEM_EXECUTE) != 0;
-		WORD readable = (pSection->Characteristics & IMAGE_SCN_MEM_READ) != 0;
-		WORD writeable = (pSection->Characteristics & IMAGE_SCN_MEM_WRITE) != 0;
-		dwNewProtect = ProtectionFlags[executable][readable][writeable];
-		pShellcodeData->_VirtualProtect((pShellcodeData->pInMemory + pSection->VirtualAddress), pSection->SizeOfRawData, dwNewProtect, &dwOldProtect);
-	}*/
 
 	// Call main
 	DllMain entry = (DllMain)(pShellcodeData->pInMemory + pOptHeader->AddressOfEntryPoint);
