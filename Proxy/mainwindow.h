@@ -21,6 +21,9 @@ public:
     void ClearDbg();
     void ClearOut();
 
+private slots:
+    void on_menu_Inject_triggered();
+
 private:
     void HandlePipe();
     Ui::MainWindow *ui;
