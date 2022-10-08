@@ -1,15 +1,15 @@
-#include "mainwindow.h"
-#include "./ui_mainwindow.h"
-
-#include <thread>
 #include <Windows.h>
 #include <tlhelp32.h>
 #include <iostream>
+
 #include <QThread>
 #include <QFileDialog>
 
-#include "Packet.h"
-#include "ManualMap.h"
+#include "mainwindow.h"
+#include "./ui_mainwindow.h"
+
+#include "Packet.hpp"
+#include "ManualMap.hpp"
 
 #define PIPE_NAME L"\\\\.\\pipe\\Z0F_Pipe"
 
@@ -46,9 +46,10 @@ void MainWindow::ClearOut(){
 void MainWindow::HandlePipe(){
     PACKET packet;
     HANDLE hPipe;
+    
+    DbgPrint("Waiting...\n");
 
-    // Create Pipe
-    hPipe = SetupPipe(PIPE_NAME, PIPE_ACCESS_DUPLEX, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT);
+    hPipe = SetupPipe();
     if (hPipe == INVALID_HANDLE_VALUE) {
         DbgPrint("main() SetupPipe() err: " + QString::number(::GetLastError()));
         goto __exit;
@@ -115,10 +116,8 @@ void MainWindow::on_menu_Inject_triggered()
         return;
     }
 
-    DbgPrint("Injecting:" + QString::fromStdWString(ofn.lpstrFile));
-
-    PROCESSENTRY32W PE32{ 0 };
-    PE32.dwSize = sizeof(PE32);
+    DbgPrint("Injecting: " + QString::fromStdWString(ofn.lpstrFile));
+    
     HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
     if (hSnap == INVALID_HANDLE_VALUE)
     {
@@ -126,7 +125,10 @@ void MainWindow::on_menu_Inject_triggered()
         return;
     }
 
+    PROCESSENTRY32W PE32{ 0 };
+    PE32.dwSize = sizeof(PE32);
     DWORD PID = 0;
+    
     BOOL bRet = Process32FirstW(hSnap, &PE32);
     while (bRet)
     {
@@ -137,7 +139,6 @@ void MainWindow::on_menu_Inject_triggered()
         }
         bRet = Process32NextW(hSnap, &PE32);
     }
-
     CloseHandle(hSnap);
 
     HANDLE hProc = OpenProcess(PROCESS_ALL_ACCESS, FALSE, PID);
@@ -154,8 +155,13 @@ void MainWindow::on_menu_Inject_triggered()
         return;
     }
 
-    CustomMap(hProc, ofn.lpstrFile);
+    if (!CustomMap(hProc, ofn.lpstrFile)) {
+        DbgPrint("Failed to inject DLL.\n");
+        CloseHandle(hProc);
+        return;
+    }
+
     CloseHandle(hProc);
+    
     return;
 }
-

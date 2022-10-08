@@ -7,7 +7,7 @@
 
 struct PACKET {
 	int size;
-	char buf[4096];
+    char buf[4096];
 };
 
 /// <summary>

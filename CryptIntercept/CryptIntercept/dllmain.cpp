@@ -39,7 +39,7 @@ void* __fastcall CryptWrapper_Hook(void* unk1, char* pkt, int pktLen) {
 
 	// Send to proxy
 	memset(&packet, 0, sizeof(packet));
-	/*
+	
 	if (pktLen < sizeof(packet.buf)) {
 		size_t startPos = 0;
 		size_t endPos = 0;
@@ -100,7 +100,7 @@ void* __fastcall CryptWrapper_Hook(void* unk1, char* pkt, int pktLen) {
 		}
 		zlog.dbgFile << "----------------------------------\n";
 	}
-	*/
+	
 
 	// GUI log
 	zlog.GUIFile << "--------------" << "Len: " << pktLen
@@ -145,11 +145,34 @@ BOOL Main() {
 	}
 
 	memset(&packet, 0, sizeof(packet));
-	hPipe = OpenPipe(L"\\\\.\\pipe\\Z0F_Pipe", GENERIC_READ | GENERIC_WRITE);
+
+	/*hPipe = CreateFile(PIPE_NAME, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+	if (INVALID_HANDLE_VALUE == hPipe) {
+		zlog.dbgFile << "OpenPipe() CreateFile() err: " << GetLastError() << std::endl;
+		return FALSE;
+	}
+
+	DWORD lpMode = PIPE_READMODE_MESSAGE;
+	if (FALSE == SetNamedPipeHandleState(hPipe, &lpMode, NULL, NULL)) {
+		zlog.dbgFile << "SetNamedPipeHandleState() err: " << GetLastError() << std::endl;
+		return FALSE;
+	}
+
 	if (hPipe == INVALID_HANDLE_VALUE) {
 		zlog.DbgBox(L"main() OpenPipe() err");
 		return FALSE;
+	}*/
+
+	snprintf(packet.buf, sizeof(packet.buf), "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n");
+	packet.size = sizeof("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+	char out[4096] = { 0 };
+	DWORD dwBytes = 0;
+	if (0 == CallNamedPipe(PIPE_NAME, (LPVOID)&packet, sizeof(packet), out, sizeof(out), &dwBytes, NMPWAIT_WAIT_FOREVER)) {
+		zlog.dbgFile << "CallNamedPipe() " << GetLastError() << std::endl;
+		return FALSE;
 	}
+
+	return TRUE;
 
 	// Resolve Functions
 	zlog.dbgFile << "CryptWrapper: " << funcs.GetCryptWrapper() << std::endl;
@@ -179,7 +202,6 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 	switch (ul_reason_for_call)
 	{
 	case DLL_PROCESS_ATTACH:
-		zlog.DbgBox(L"GW2 Hack Loaded");
 		Main();
 		break;
 	case DLL_PROCESS_DETACH:
