@@ -6,19 +6,20 @@
 #include <tlhelp32.h>
 #include <iostream>
 #include <QThread>
-
+#include <QFileDialog>
 
 #include "Packet.h"
 #include "ManualMap.h"
 
+#define PIPE_NAME L"\\\\.\\pipe\\Z0F_Pipe"
+
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent)
-    , ui(new Ui::MainWindow)
+    : QMainWindow(parent),
+    ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
     pipeThread = QThread::create(&MainWindow::HandlePipe, this);
     pipeThread->start();
-//    pipeThread.detach(); // Find a better way than doing this.
 }
 
 MainWindow::~MainWindow()
@@ -47,7 +48,7 @@ void MainWindow::HandlePipe(){
     HANDLE hPipe;
 
     // Create Pipe
-    hPipe = ::SetupPipe(L"\\\\.\\pipe\\Z0F_Pipe", PIPE_ACCESS_DUPLEX, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT);
+    hPipe = SetupPipe(PIPE_NAME, PIPE_ACCESS_DUPLEX, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT);
     if (hPipe == INVALID_HANDLE_VALUE) {
         DbgPrint("main() SetupPipe() err: " + QString::number(::GetLastError()));
         goto __exit;
@@ -93,18 +94,13 @@ __exit:
 
 void MainWindow::on_menu_Inject_triggered()
 {
-    HANDLE hFile;
     OPENFILENAMEW ofn;
-    WCHAR szFile[260];
+    WCHAR szFile[260] = {0};
 
-    // Initialize OPENFILENAME
     ZeroMemory(&ofn, sizeof(ofn));
     ofn.lStructSize = sizeof(ofn);
     ofn.hwndOwner = NULL;
     ofn.lpstrFile = szFile;
-    // Set lpstrFile[0] to '\0' so that GetOpenFileName does not
-    // use the contents of szFile to initialize itself.
-    ofn.lpstrFile[0] = '\0';
     ofn.nMaxFile = sizeof(szFile);
     ofn.lpstrFilter = L"\0";
     ofn.nFilterIndex = 1;
@@ -144,7 +140,7 @@ void MainWindow::on_menu_Inject_triggered()
 
     CloseHandle(hSnap);
 
-    HANDLE hProc = ::OpenProcess(PROCESS_ALL_ACCESS, FALSE, PID);
+    HANDLE hProc = OpenProcess(PROCESS_ALL_ACCESS, FALSE, PID);
     if (!hProc)
     {
         DbgPrint("Failed to open process: " + QString::number(GetLastError()));

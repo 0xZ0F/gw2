@@ -157,17 +157,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Packet.h" />
-    <ClInclude Include="ZLog.h" />
-    <ClInclude Include="GW2Info.h" />
-    <ClInclude Include="Pattern.h" />
+    <ClInclude Include="Packet.hpp" />
+    <ClInclude Include="ZLog.hpp" />
+    <ClInclude Include="GW2Functions.hpp" />
+    <ClInclude Include="Pattern.hpp" />
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Packet.cpp" />
     <ClCompile Include="ZLog.cpp" />
     <ClCompile Include="dllmain.cpp" />
-    <ClCompile Include="GW2Info.cpp" />
+    <ClCompile Include="GW2Functions.cpp" />
     <ClCompile Include="Pattern.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

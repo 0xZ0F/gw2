@@ -1,6 +1,6 @@
 #include "pch.h"
 
-#include "Packet.h"
+#include "Packet.hpp"
 
 /// <summary>
 /// Send a packet over a pipe.

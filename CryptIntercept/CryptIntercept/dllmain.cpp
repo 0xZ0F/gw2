@@ -1,8 +1,9 @@
 #include "pch.h"
-#include "Pattern.h"
-#include "GW2Info.h"
-#include "zlog.h"
-#include "Packet.h"
+
+#include "ZLog.hpp"
+#include "Pattern.hpp"
+#include "GW2Functions.hpp"
+#include "Packet.hpp"
 
 ZLog zlog;
 GW2Functions funcs;
@@ -20,7 +21,7 @@ static void ReadString(char* output, HANDLE file) {
 	} while (read > 0 && *(output + index - 1) != 0);
 }
 
-void* CryptWrapper_Hook(void* unk1, char* pkt, int pktLen) {
+void* __fastcall CryptWrapper_Hook(void* unk1, char* pkt, int pktLen) {
 	int toSend = pktLen;
 	int origLen = 0;
 	int newLen = 0;
@@ -38,6 +39,7 @@ void* CryptWrapper_Hook(void* unk1, char* pkt, int pktLen) {
 
 	// Send to proxy
 	memset(&packet, 0, sizeof(packet));
+	/*
 	if (pktLen < sizeof(packet.buf)) {
 		size_t startPos = 0;
 		size_t endPos = 0;
@@ -98,6 +100,7 @@ void* CryptWrapper_Hook(void* unk1, char* pkt, int pktLen) {
 		}
 		zlog.dbgFile << "----------------------------------\n";
 	}
+	*/
 
 	// GUI log
 	zlog.GUIFile << "--------------" << "Len: " << pktLen
@@ -110,11 +113,26 @@ void* CryptWrapper_Hook(void* unk1, char* pkt, int pktLen) {
 	}
 
 	/*
-	------------------
+	-------------------------------------
 		STILL SENDING UNEDITIED PACKET
-	------------------
+	-------------------------------------
 	*/
-	return funcs.CryptWrapper(unk1, pkt, toSend);
+	return funcs.m_fpCryptWrapper(unk1, pkt, pktLen);
+}
+
+void* __fastcall Fishing_Hook(void* base, INT64 speedMult, void* unk3, void* unk4)
+{
+	// Dynamic max for evasion (hopefully)
+	static INT64 fishingSpeedMultMax = 1;
+
+	// Set the green dot to the middle.
+	*((float*)((UINT_PTR)base + 0x14)) = 0.5f;
+
+	if (speedMult > fishingSpeedMultMax) {
+		fishingSpeedMultMax = speedMult;
+	}
+
+	return ((FishingFunc_t)funcs.m_pFishingPatch)(base, fishingSpeedMultMax, unk3, unk4);
 }
 
 BOOL Main() {
@@ -134,17 +152,19 @@ BOOL Main() {
 	}
 
 	// Resolve Functions
-	zlog.dbgFile << "CryptWrapper: " << funcs.CryptWrapper << std::endl;
+	zlog.dbgFile << "CryptWrapper: " << funcs.GetCryptWrapper() << std::endl;
+	zlog.dbgFile << "FishingPatch: " << funcs.GetFishingPatch() << std::endl;
 
 	// Detour Functions
 	DetourTransactionBegin();
 	DetourUpdateThread(::GetCurrentThread());
 
-	DetourAttach((PVOID*)&funcs.CryptWrapper, (PVOID)CryptWrapper_Hook);
+	DetourAttach((PVOID*)&funcs.m_fpCryptWrapper, (PVOID)CryptWrapper_Hook);
+	DetourAttach((PVOID*)&funcs.m_pFishingPatch, (PVOID)Fishing_Hook);
 
 	error = DetourTransactionCommit();
 	if (error != NO_ERROR) {
-		zlog.dbgFile << "Failed to detour CryptWrapper @ " << funcs.CryptWrapper << std::endl;
+		zlog.dbgFile << "Failed to detour.\n";
 		return FALSE;
 	}
 
@@ -159,7 +179,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 	switch (ul_reason_for_call)
 	{
 	case DLL_PROCESS_ATTACH:
-		zlog.DbgBox(L"DLL Loaded");
+		zlog.DbgBox(L"GW2 Hack Loaded");
 		Main();
 		break;
 	case DLL_PROCESS_DETACH:
