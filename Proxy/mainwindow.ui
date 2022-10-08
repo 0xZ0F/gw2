@@ -15,7 +15,7 @@
   </property>
   <property name="windowIcon">
    <iconset>
-    <normaloff>../../../Users/Z0F/Pictures/Xbox360-icon.ico</normaloff>../../../Users/Z0F/Pictures/Xbox360-icon.ico</iconset>
+    <normaloff>assets/Xbox360-icon.ico</normaloff>assets/Xbox360-icon.ico</iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout_2">
@@ -71,7 +71,7 @@
      <x>0</x>
      <y>0</y>
      <width>770</width>
-     <height>21</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -86,7 +86,7 @@
   <action name="menu_Inject">
    <property name="icon">
     <iconset>
-     <normaloff>../../../Users/Z0F/Pictures/AnyConv.com__09e4ff41a8416ad38492aa52565bc81fa18ba112r1-716-344v2_uhq.ico</normaloff>../../../Users/Z0F/Pictures/AnyConv.com__09e4ff41a8416ad38492aa52565bc81fa18ba112r1-716-344v2_uhq.ico</iconset>
+     <normaloff>assets/AnyConv.com__09e4ff41a8416ad38492aa52565bc81fa18ba112r1-716-344v2_uhq.ico</normaloff>assets/AnyConv.com__09e4ff41a8416ad38492aa52565bc81fa18ba112r1-716-344v2_uhq.ico</iconset>
    </property>
    <property name="text">
     <string>Inject</string>
