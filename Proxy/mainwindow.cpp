@@ -97,7 +97,6 @@ void MainWindow::on_menu_Inject_triggered()
     OPENFILENAMEW ofn;
     WCHAR szFile[260];
 
-    // Initialize OPENFILENAME
     ZeroMemory(&ofn, sizeof(ofn));
     ofn.lStructSize = sizeof(ofn);
     ofn.hwndOwner = NULL;
@@ -144,7 +143,7 @@ void MainWindow::on_menu_Inject_triggered()
 
     CloseHandle(hSnap);
 
-    HANDLE hProc = ::OpenProcess(PROCESS_ALL_ACCESS, FALSE, PID);
+    HANDLE hProc = OpenProcess(PROCESS_ALL_ACCESS, FALSE, PID);
     if (!hProc)
     {
         DbgPrint("Failed to open process: " + QString::number(GetLastError()));

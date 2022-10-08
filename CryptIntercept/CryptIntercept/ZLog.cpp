@@ -1,5 +1,6 @@
 #include "pch.h"
-#include "ZLog.h"
+
+#include "ZLog.hpp"
 
 ZLog::ZLog() {
 	ZLog::dbgFile.open(ZLog::txt_dbgFile, std::ios::app);

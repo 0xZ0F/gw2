@@ -18,16 +18,16 @@
     <ClInclude Include="pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Pattern.h">
+    <ClInclude Include="Pattern.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="GW2Info.h">
+    <ClInclude Include="GW2Functions.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ZLog.h">
+    <ClInclude Include="ZLog.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Packet.h">
+    <ClInclude Include="Packet.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -41,7 +41,7 @@
     <ClCompile Include="Pattern.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="GW2Info.cpp">
+    <ClCompile Include="GW2Functions.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ZLog.cpp">

@@ -1,5 +1,6 @@
 #include "pch.h"
-#include <vector>
+
+#include "Pattern.hpp"
 
 PVOID PatternScan(
 	_In_ void* module,

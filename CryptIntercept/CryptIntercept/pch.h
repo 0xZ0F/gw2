@@ -1,10 +1,12 @@
 #ifndef PCH_H
 #define PCH_H
 
-#include <iostream>
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#include <detours.h>
 #include <fstream>
 #include <string>
-#include <windows.h>
-#include <detours.h>
+#include <vector>
+#include <iostream>
 
 #endif //PCH_H
