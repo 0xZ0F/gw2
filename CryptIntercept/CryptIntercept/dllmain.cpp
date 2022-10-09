@@ -131,7 +131,7 @@ void* __fastcall Fishing_Hook(void* base, INT64 speedMult, void* unk3, void* unk
 		fishingSpeedMultMax = speedMult;
 	}
 
-	return ((FishingFunc_t)funcs.m_pFishingPatch)(base, fishingSpeedMultMax, unk3, unk4);
+	return ((FishingFunc_t)funcs.m_pFishingPatch)(base, 50, unk3, unk4);
 }
 
 BOOL Main() {

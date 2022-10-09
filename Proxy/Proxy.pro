@@ -10,13 +10,13 @@ CONFIG += c++17
 
 SOURCES += \
     ManualMap.cpp \
-    Packet.cpp \
+    PipeManager.cpp \
     main.cpp \
     mainwindow.cpp
 
 HEADERS += \
-    ManualMap.h \
-    Packet.h \
+    ManualMap.hpp \
+    PipeManager.hpp \
     mainwindow.h
 
 FORMS += \
