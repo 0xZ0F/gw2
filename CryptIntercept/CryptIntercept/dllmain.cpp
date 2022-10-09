@@ -3,12 +3,12 @@
 #include "ZLog.hpp"
 #include "Pattern.hpp"
 #include "GW2Functions.hpp"
-#include "Packet.hpp"
+#include "PipeManager.hpp"
 
 ZLog zlog;
 GW2Functions funcs;
 HANDLE hPipe;
-PACKET packet;
+PipeManager manager;
 
 static void ReadString(char* output, HANDLE file) {
 	ULONG read = 0;
@@ -33,14 +33,13 @@ void* __fastcall CryptWrapper_Hook(void* unk1, char* pkt, int pktLen) {
 	}
 
 	if (hPipe == INVALID_HANDLE_VALUE) {
-		zlog.DbgBox(L"Invalid handle value");
+		zlog.DbgBox(L"Pipe handle invalid.");
 		return NULL;
 	}
 
 	// Send to proxy
-	memset(&packet, 0, sizeof(packet));
-	
-	if (pktLen < sizeof(packet.buf)) {
+	manager.ZeroPacket();
+	if (pktLen < manager.GetBufSize()) {
 		size_t startPos = 0;
 		size_t endPos = 0;
 
@@ -63,20 +62,20 @@ void* __fastcall CryptWrapper_Hook(void* unk1, char* pkt, int pktLen) {
 			}
 		}
 
-		packet.size = pktLen;
-		snprintf(packet.buf, sizeof(packet.buf), str.c_str());
-		if (SendPacket(hPipe, &packet) == FALSE) {
+		manager.SetPacketSize(pktLen);
+		snprintf(manager.GetBuf(), manager.GetPacketSize(), str.c_str());
+		if (manager.SendPacket(hPipe) == FALSE) {
 			zlog.DbgBox(L"CryptWrapper_Hook() SendPacket()");
 		}
 
 		// Get back from proxy
-		if (RecvPacket(hPipe, &packet) == FALSE) {
-			zlog.DbgBox(L"CryptWrapper_Hook() SendPacket()");
+		if (manager.RecvPacket(hPipe) == FALSE) {
+			zlog.DbgBox(L"CryptWrapper_Hook() RecvPacket()");
 		}
 
 		startPos = 0;
 		endPos = 0;
-		str = std::string(packet.buf, sizeof(packet.buf));
+		str = std::string(manager.GetBuf(), manager.GetPacketSize());
 		startPos = str.find("l:");
 		endPos = str.find("\r", startPos);
 		if (startPos != std::string::npos && endPos != std::string::npos) {
@@ -144,9 +143,7 @@ BOOL Main() {
 		return FALSE;
 	}
 
-	memset(&packet, 0, sizeof(packet));
-
-	/*hPipe = CreateFile(PIPE_NAME, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+	hPipe = CreateFile(PIPE_NAME, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
 	if (INVALID_HANDLE_VALUE == hPipe) {
 		zlog.dbgFile << "OpenPipe() CreateFile() err: " << GetLastError() << std::endl;
 		return FALSE;
@@ -161,18 +158,7 @@ BOOL Main() {
 	if (hPipe == INVALID_HANDLE_VALUE) {
 		zlog.DbgBox(L"main() OpenPipe() err");
 		return FALSE;
-	}*/
-
-	snprintf(packet.buf, sizeof(packet.buf), "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n");
-	packet.size = sizeof("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
-	char out[4096] = { 0 };
-	DWORD dwBytes = 0;
-	if (0 == CallNamedPipe(PIPE_NAME, (LPVOID)&packet, sizeof(packet), out, sizeof(out), &dwBytes, NMPWAIT_WAIT_FOREVER)) {
-		zlog.dbgFile << "CallNamedPipe() " << GetLastError() << std::endl;
-		return FALSE;
 	}
-
-	return TRUE;
 
 	// Resolve Functions
 	zlog.dbgFile << "CryptWrapper: " << funcs.GetCryptWrapper() << std::endl;

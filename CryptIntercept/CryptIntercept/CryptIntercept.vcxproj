@@ -157,14 +157,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Packet.hpp" />
+    <ClInclude Include="PipeManager.hpp" />
     <ClInclude Include="ZLog.hpp" />
     <ClInclude Include="GW2Functions.hpp" />
     <ClInclude Include="Pattern.hpp" />
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Packet.cpp" />
+    <ClCompile Include="PipeManager.cpp" />
     <ClCompile Include="ZLog.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="GW2Functions.cpp" />

@@ -8,10 +8,8 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
 
-#include "Packet.hpp"
+#include "PipeManager.hpp"
 #include "ManualMap.hpp"
-
-#define PIPE_NAME L"\\\\.\\pipe\\Z0F_Pipe"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
@@ -44,32 +42,29 @@ void MainWindow::ClearOut(){
 }
 
 void MainWindow::HandlePipe(){
-    PACKET packet;
     HANDLE hPipe;
+    PipeManager manager;
     
     DbgPrint("Waiting...\n");
 
-    hPipe = SetupPipe();
+    hPipe = manager.SetupPipe();
     if (hPipe == INVALID_HANDLE_VALUE) {
         DbgPrint("main() SetupPipe() err: " + QString::number(::GetLastError()));
         goto __exit;
     }
 
-    DbgPrint("Server Started");
+    DbgPrint("Client Connected");
 
     // Read from client
     for (;;) {
-        memset(&packet, 0, sizeof(packet));
-        DbgPrint("Waiting to get packet...");
-        if(!RecvPacket(hPipe, &packet)){
+        memset(&manager, 0, sizeof(manager));
+        if(!manager.RecvPacket(hPipe)){
             DbgPrint("Failed to get packet.");
             break;
         }
-        DbgPrint("Got Connection");
-
-        packet.buf[packet.size - 1] = '\0';
+        
         ClearOut();
-        Output(packet.buf);
+        Output(manager.GetBuf());
 
         if(ui->chk_Intercept->checkState() == Qt::Checked){
             QEventLoop loop;
@@ -77,7 +72,7 @@ void MainWindow::HandlePipe(){
             loop.exec();
         }
 
-        if(!SendPacket(hPipe, &packet)){
+        if(!manager.SendPacket(hPipe)){
             DbgPrint("Failed to send packet.");
             break;
         }
@@ -125,10 +120,9 @@ void MainWindow::on_menu_Inject_triggered()
         return;
     }
 
+    DWORD PID = 0;    
     PROCESSENTRY32W PE32{ 0 };
     PE32.dwSize = sizeof(PE32);
-    DWORD PID = 0;
-    
     BOOL bRet = Process32FirstW(hSnap, &PE32);
     while (bRet)
     {

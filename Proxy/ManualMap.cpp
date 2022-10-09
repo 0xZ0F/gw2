@@ -1,10 +1,5 @@
 #include "ManualMap.hpp"
 
-/// <summary>
-/// Check if both the injector and the target process are the same architecture.
-/// </summary>
-/// <param name="hProc">Handle to the proc to check</param>
-/// <returns>True if both the injector and the target are the same arch.</returns>
 BOOL IsCorrectTargetArchitecture(HANDLE hProc)
 {
     BOOL isTarget32 = FALSE;
@@ -17,84 +12,6 @@ BOOL IsCorrectTargetArchitecture(HANDLE hProc)
     IsWow64Process(GetCurrentProcess(), &isInjector32);
 
     return (isTarget32 == isInjector32);
-}
-
-VOID PrintDebugMessage(PCSTR pszMessage)
-{
-    PSTR pszSystem = NULL;
-    PSTR pszFormatted = NULL;
-    PCSTR pszFormat = "%1!s!: %2!s!\r\n";
-    DWORD dwSystemLen = 0;
-    DWORD dwFormattedLen = 0;
-    DWORD dwBytesWritten = 0;
-    DWORD_PTR adwpArgs[3] = { 0 };
-
-    dwSystemLen = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
-        NULL,
-        GetLastError(),
-        0,
-        (LPSTR)&pszSystem,
-        0,
-        NULL);
-    if (0 == dwSystemLen)
-    {
-        return;
-    }
-
-    adwpArgs[0] = (DWORD_PTR)pszMessage;
-    adwpArgs[1] = (DWORD_PTR)pszSystem;
-    dwFormattedLen = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_STRING | FORMAT_MESSAGE_ARGUMENT_ARRAY,
-        pszFormat,
-        0,
-        0,
-        (LPSTR)&pszFormatted,
-        0,
-        (va_list*)adwpArgs);
-    if (0 == dwFormattedLen)
-    {
-        LocalFree(pszSystem);
-        return;
-    }
-
-    WriteFile(GetStdHandle(STD_ERROR_HANDLE),
-        pszFormatted,
-        dwFormattedLen,
-        &dwBytesWritten,
-        NULL);
-
-    LocalFree(pszFormatted);
-    LocalFree(pszSystem);
-}
-
-VOID PrintMessage(PCSTR pszFormat, ...)
-{
-    PSTR pszFormatted = NULL;
-    DWORD dwFormattedLen = 0;
-    DWORD dwBytesWritten = 0;
-    va_list vaArgs = NULL;
-
-    va_start(vaArgs, pszFormat);
-
-    dwFormattedLen = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_STRING,
-        pszFormat,
-        0,
-        0,
-        (LPSTR)&pszFormatted,
-        0,
-        &vaArgs);
-
-    if (dwFormattedLen > 0)
-    {
-        WriteFile(GetStdHandle(STD_OUTPUT_HANDLE),
-            pszFormatted,
-            dwFormattedLen,
-            &dwBytesWritten,
-            NULL);
-
-        LocalFree(pszFormatted);
-    }
-
-    va_end(vaArgs);
 }
 
 BOOL ReadAllBytes(LPCWSTR pwszFileName, PBYTE* ppData, PDWORD pdwDataLen)
@@ -119,21 +36,18 @@ BOOL ReadAllBytes(LPCWSTR pwszFileName, PBYTE* ppData, PDWORD pdwDataLen)
         NULL);
     if (INVALID_HANDLE_VALUE == hFile)
     {
-        PrintDebugMessage("CreateFile");
         goto fail;
     }
 
-    if (FALSE == GetFileSizeEx(hFile, &liFileSize) ||
-        liFileSize.HighPart > 0)	// Don't want to bother with file sizes > 4GB
+    // No files > 4GB
+    if (FALSE == GetFileSizeEx(hFile, &liFileSize) || liFileSize.HighPart > 0)
     {
-        PrintDebugMessage("GetFileSizeEx");
         goto fail;
     }
 
     pData = (PBYTE)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, liFileSize.LowPart);
     if (NULL == pData)
     {
-        PrintDebugMessage("HeapAlloc");
         goto fail;
     }
 
@@ -175,14 +89,12 @@ PBYTE MapToMemory(HANDLE proc, PBYTE pData) {
     PIMAGE_NT_HEADERS pNTHeader = (PIMAGE_NT_HEADERS)(pData + pDosHeader->e_lfanew);
     PIMAGE_FILE_HEADER pFileHeader = (PIMAGE_FILE_HEADER)(&pNTHeader->FileHeader);
     PIMAGE_OPTIONAL_HEADER pOptHeader = (PIMAGE_OPTIONAL_HEADER)(&pNTHeader->OptionalHeader);
-    PIMAGE_DATA_DIRECTORY pDataDir = (PIMAGE_DATA_DIRECTORY)(pOptHeader->DataDirectory);
 
     // Alloc space for the DLL, try first @ ImageBase
     pInMemory = (PBYTE)VirtualAllocEx(proc, (LPVOID)(pOptHeader->ImageBase), pOptHeader->SizeOfImage, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
     if (NULL == pInMemory) {
         pInMemory = (PBYTE)VirtualAllocEx(proc, NULL, pOptHeader->SizeOfImage, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE);
         if (NULL == pInMemory) {
-            PrintDebugMessage("VirtualAllocEx()\n");
             return NULL;
         }
     }
@@ -192,15 +104,8 @@ PBYTE MapToMemory(HANDLE proc, PBYTE pData) {
     shellcodeData._LoadLibraryA = LoadLibraryA;
     shellcodeData._VirtualProtect = VirtualProtect;
 
-    // If VirtualSize > SizeOfRawData, the section is 0 padded
-    // We handle this by zeroing the entire memory region of the image
-    // Otherwise, we'd have to right zeroes to VirtualSize - SizeOfRawData
-    /*ZeroMemory(pInMemory, pOptHeader->SizeOfImage);
-    WriteProcessMemory(proc, pInMemory, 0, pOptHeader->SizeOfImage, NULL);*/
-
     // Copy headers
     if (!WriteProcessMemory(proc, pInMemory, pData, pOptHeader->SizeOfHeaders, NULL)) {
-        PrintDebugMessage("WriteProcessMemory()\n");
         return NULL;
     }
 
@@ -209,7 +114,6 @@ PBYTE MapToMemory(HANDLE proc, PBYTE pData) {
     for (INT x = 0; x < pFileHeader->NumberOfSections; ++x) {
         if (pSection->SizeOfRawData) {
             if (!WriteProcessMemory(proc, pInMemory + pSection->VirtualAddress, pData + pSection->PointerToRawData, pSection->SizeOfRawData, NULL)) {
-                PrintDebugMessage("WriteProcessMemory()\n");
                 return NULL;
             }
         }
@@ -219,42 +123,36 @@ PBYTE MapToMemory(HANDLE proc, PBYTE pData) {
     // Alloc and copy shellcode data
     LPVOID pShellcodeData = VirtualAllocEx(proc, NULL, sizeof(shellcodeData), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
     if (NULL == pShellcodeData) {
-        PrintDebugMessage("VirtualAllocEx()\n");
         return NULL;
     }
     if (!WriteProcessMemory(proc, pShellcodeData, &shellcodeData, sizeof(shellcodeData), NULL)) {
-        PrintDebugMessage("WriteProcessMemory()\n");
         return NULL;
     }
 
-    // Alloc and copy shellcode
+    // Alloc for shellcode
     LPVOID pShellcode = VirtualAllocEx(proc, NULL, 4096, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
     if (NULL == pShellcode) {
-        PrintDebugMessage("VirtualAllocEx()\n");
         return NULL;
     }
     
     PUINT_PTR pShellcodeFunc = (PUINT_PTR)Shellcode;
-    
-    // If built w/ debug, resolve shellcode address from jump table
+        
 #ifdef _DEBUG
-    UINT32 offset = *(UINT32*)((BYTE*)pShellcodeFunc + 1);
-    pShellcodeFunc = (PUINT_PTR)((BYTE*)pShellcodeFunc + offset + 5);
+    // If built w/ debug, resolve shellcode address from jump table
+    // Only works for short jumps (opcode E9)
+    pShellcodeFunc = (PUINT_PTR)((BYTE*)pShellcodeFunc + (*(UINT32*)((BYTE*)pShellcodeFunc + 1)) + 5);
 #endif
     
+    // Copy shellcode into target. 4096 is arbitrary, it just needs to be big enough for Shellcode().
     if (!WriteProcessMemory(proc, pShellcode, (LPCVOID)pShellcodeFunc, 4096, NULL)) {
-        PrintDebugMessage("WriteProcessMemory()\n");
         return NULL;
     }
 
     // Exec Shellcode
     HANDLE hThread = CreateRemoteThread(proc, NULL, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(pShellcode), pShellcodeData, 0, NULL);
     if (NULL == hThread) {
-        PrintDebugMessage("CreateRemoteThread()\n");
         return NULL;
     }
-
-    // Cleanup
 
     return pInMemory;
 }
@@ -264,18 +162,13 @@ BOOL CustomMap(HANDLE proc, LPCWSTR dll)
     PBYTE pData = NULL;
     DWORD dwDataLen = 0;
 
-    // 1. Read in the contents of the test (or your own) dll/exe
-    // You can use the helper functions
     if (FALSE == ReadAllBytes(dll, &pData, &dwDataLen)) {
-        PrintDebugMessage("ReadAllBytes()\n");
         return FALSE;
     }
 
-    // 3. Map disk image to a virtual image
     PBYTE pInMemory = MapToMemory(proc, pData);
 
     if (NULL == pInMemory) {
-        PrintDebugMessage("MapToMemory()\n");
         return FALSE;
     }
 
@@ -287,10 +180,8 @@ BOOL CustomMap(HANDLE proc, LPCWSTR dll)
 void __stdcall Shellcode(PSHELLCODE_DATA pShellcodeData) {
     PIMAGE_DOS_HEADER pDosHeader = (PIMAGE_DOS_HEADER)(pShellcodeData->pInMemory);
     PIMAGE_NT_HEADERS pNTHeader = (PIMAGE_NT_HEADERS)(pShellcodeData->pInMemory + pDosHeader->e_lfanew);
-    PIMAGE_FILE_HEADER pFileHeader = (PIMAGE_FILE_HEADER)(&pNTHeader->FileHeader);
     PIMAGE_OPTIONAL_HEADER pOptHeader = (PIMAGE_OPTIONAL_HEADER)(&pNTHeader->OptionalHeader);
     PIMAGE_DATA_DIRECTORY pDataDir = (PIMAGE_DATA_DIRECTORY)(pOptHeader->DataDirectory);
-    PIMAGE_SECTION_HEADER pSection = IMAGE_FIRST_SECTION(pNTHeader);
 
     if (NULL == pShellcodeData || NULL == pShellcodeData->pInMemory || NULL == pShellcodeData->_GetProcAddress
         || NULL == pShellcodeData->_LoadLibraryA || NULL == pShellcodeData->_VirtualProtect) {
@@ -309,7 +200,6 @@ void __stdcall Shellcode(PSHELLCODE_DATA pShellcodeData) {
 
             for (UINT x = 0; x < numOfRelocs; ++x, ++pReloc) {
                 if (pReloc->type == IMAGE_REL_BASED_HIGHLOW) {
-                    // (DWORD)imageDelta
                     *(DWORD*)(pShellcodeData->pInMemory + baseReloc->VirtualAddress + pReloc->offset) += (ULONG_PTR)imageDelta;
                 }
                 if (pReloc->type == IMAGE_REL_BASED_DIR64) {
@@ -329,7 +219,7 @@ void __stdcall Shellcode(PSHELLCODE_DATA pShellcodeData) {
     while (pImportDesc->Name) {
         pszImportName = (PSTR)(pShellcodeData->pInMemory + pImportDesc->Name);
 
-        // A version since names are ASCII
+        // "A" version since names are ASCII
         HMODULE hLib = pShellcodeData->_LoadLibraryA(pszImportName);
         if (hLib == NULL) {
             return;
@@ -357,7 +247,7 @@ void __stdcall Shellcode(PSHELLCODE_DATA pShellcodeData) {
         ++pImportDesc;
     }
 
-    // Fix section perms
+    // Ideally section permission should be fixed here.
 
     // Call main
     DllMain_t entry = (DllMain_t)(pShellcodeData->pInMemory + pOptHeader->AddressOfEntryPoint);

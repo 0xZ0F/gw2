@@ -20,7 +20,24 @@ typedef struct {
     PBYTE pInMemory;
 }SHELLCODE_DATA, * PSHELLCODE_DATA;
 
+/// <summary>
+/// Map a DLL into a target process.
+/// </summary>
+/// <param name="proc">Handle to the process to map into.</param>
+/// <param name="dll">Path of the DLL to map.</param>
+/// <returns>TRUE on success, FALSE on failure.</returns>
 BOOL CustomMap(HANDLE proc, LPCWSTR dll);
+
+/// <summary>
+/// Checks if the current process architecture matches the target's.
+/// </summary>
+/// <param name="hProc">Handle to the target process to check.</param>
+/// <returns>TRUE if the current process's and the target process's architectures match, FALSE otherwise.</returns>
 BOOL IsCorrectTargetArchitecture(HANDLE hProc);
+
+/// <summary>
+/// Shellcode function to be allocated in the target process.
+/// </summary>
+/// <param name="pShellcodeData"></param>
+/// <returns></returns>
 void __stdcall Shellcode(PSHELLCODE_DATA pShellcodeData);
-DWORD __stdcall __shellcode_end_stub();

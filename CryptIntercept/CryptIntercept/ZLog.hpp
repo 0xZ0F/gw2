@@ -9,9 +9,19 @@ public:
 	std::ofstream dbgFile;
 	std::ofstream GUIFile;
 	std::ofstream tradeFile;
+
 	ZLog();
 	~ZLog();
 
+	/// <summary>
+	/// Check if there was a failure to create or open any files.
+	/// </summary>
+	/// <returns>TRUE on success, FALSE otherwise.</returns>
 	BOOL AnyFilesFailed();
-	void DbgBox(LPCWSTR);
+	
+	/// <summary>
+	/// Show a message box with.
+	/// </summary>
+	/// <param name="str">String to put in the message box.</param>
+	VOID DbgBox(LPCWSTR str);
 };

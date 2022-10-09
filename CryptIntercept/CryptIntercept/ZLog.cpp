@@ -18,6 +18,6 @@ BOOL ZLog::AnyFilesFailed() {
 	return ZLog::dbgFile.fail() || ZLog::GUIFile.fail() || ZLog::tradeFile.fail();
 }
 
-void ZLog::DbgBox(LPCWSTR str) {
+VOID ZLog::DbgBox(LPCWSTR str) {
 	MessageBox(NULL, str, L"Z0F", MB_ICONINFORMATION);
 }
