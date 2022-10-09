@@ -15,6 +15,8 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
+    m_pMMData = std::make_unique<ManualMap>();
+
     ui->setupUi(this);
     pipeThread = QThread::create(&MainWindow::HandlePipe, this);
     pipeThread->start();
@@ -88,7 +90,7 @@ __exit:
     DbgPrint("Pipe server quit.");
 }
 
-void MainWindow::on_menu_Inject_triggered()
+void MainWindow::on_menu_Load_triggered()
 {
     OPENFILENAMEW ofn;
     WCHAR szFile[260] = {0};
@@ -142,20 +144,37 @@ void MainWindow::on_menu_Inject_triggered()
         return;
     }
 
-    if (!IsCorrectTargetArchitecture(hProc))
+    if (!m_pMMData->IsCorrectTargetArchitecture(hProc))
     {
         DbgPrint("Invalid target proccess architecture.");
         CloseHandle(hProc);
         return;
     }
 
-    if (!CustomMap(hProc, ofn.lpstrFile)) {
+    if (!m_pMMData->CustomMap(hProc, ofn.lpstrFile)) {
         DbgPrint("Failed to inject DLL.\n");
         CloseHandle(hProc);
         return;
     }
+    m_pMMData->m_PID = PID;
 
     CloseHandle(hProc);
+
+    DbgPrint("DLL Injected.\n");    
     
     return;
 }
+
+void MainWindow::on_menu_Unload_triggered()
+{
+    if (!m_pMMData->m_pDllInMemory) {
+        DbgPrint("No DLL injected.\n");
+        return;
+    }
+
+    DbgPrint("Unloading DLL...\n");
+    if (!m_pMMData->FreeDLL()) {
+        DbgPrint("FreeAll() failed: " + QString::number(GetLastError()));
+    }
+}
+

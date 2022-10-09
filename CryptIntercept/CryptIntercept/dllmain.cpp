@@ -5,10 +5,10 @@
 #include "GW2Functions.hpp"
 #include "PipeManager.hpp"
 
-ZLog zlog;
-GW2Functions funcs;
-HANDLE hPipe;
-PipeManager manager;
+static HANDLE hPipe;
+static ZLog zlog;
+static GW2Functions funcs;
+static PipeManager manager;
 
 static void ReadString(char* output, HANDLE file) {
 	ULONG read = 0;
@@ -46,10 +46,10 @@ void* __fastcall CryptWrapper_Hook(void* unk1, char* pkt, int pktLen) {
 		startPos = str.find("l:");
 		endPos = str.find("\r", startPos);
 		if (startPos != std::string::npos && endPos != std::string::npos) {
-			zlog.dbgFile << "----------------------------------\n";
+			//zlog.dbgFile << "----------------------------------\n";
 			try {
 				origLen = std::stoi(str.substr(startPos + 2, endPos - startPos));
-				zlog.dbgFile << "origLen: " << origLen << "\n";
+				//zlog.dbgFile << "origLen: " << origLen << "\n";
 			}
 			catch (std::invalid_argument const& e) {
 				zlog.dbgFile << e.what();
@@ -82,7 +82,7 @@ void* __fastcall CryptWrapper_Hook(void* unk1, char* pkt, int pktLen) {
 			try {
 				newLen = std::stoi(str.substr(startPos + 2, endPos - startPos));
 				pktLen = pktLen + origLen - newLen;
-				zlog.dbgFile << "New: " << pktLen << "\n";
+				//zlog.dbgFile << "New: " << pktLen << "\n";
 				toSend = pktLen;
 			}
 			catch (std::invalid_argument const& e) {
@@ -97,7 +97,7 @@ void* __fastcall CryptWrapper_Hook(void* unk1, char* pkt, int pktLen) {
 				zlog.dbgFile << "WTF\n";
 			}
 		}
-		zlog.dbgFile << "----------------------------------\n";
+		//zlog.dbgFile << "----------------------------------\n";
 	}
 	
 
@@ -131,11 +131,10 @@ void* __fastcall Fishing_Hook(void* base, INT64 speedMult, void* unk3, void* unk
 		fishingSpeedMultMax = speedMult;
 	}
 
-	return ((FishingFunc_t)funcs.m_pFishingPatch)(base, 50, unk3, unk4);
+	return ((FishingFunc_t)funcs.m_pFishingPatch)(base, fishingSpeedMultMax, unk3, unk4);
 }
 
 BOOL Main() {
-	LONG error = 0;
 	HMODULE modBase = 0;
 
 	if (zlog.AnyFilesFailed()) {
@@ -171,11 +170,46 @@ BOOL Main() {
 	DetourAttach((PVOID*)&funcs.m_fpCryptWrapper, (PVOID)CryptWrapper_Hook);
 	DetourAttach((PVOID*)&funcs.m_pFishingPatch, (PVOID)Fishing_Hook);
 
-	error = DetourTransactionCommit();
+	LONG error = DetourTransactionCommit();
 	if (error != NO_ERROR) {
-		zlog.dbgFile << "Failed to detour.\n";
+		zlog.dbgFile << "Failed to detour (" << error << ")\n";
 		return FALSE;
 	}
+
+	return TRUE;
+}
+
+BOOL Detach() {
+	if (NO_ERROR != DetourTransactionBegin()) {
+		zlog.dbgFile << "Detach() DetourTransactionBegin()\n";
+		return FALSE;
+	}
+	
+	if (NO_ERROR != DetourUpdateThread(GetCurrentThread())) {
+		zlog.dbgFile << "Detach() DetourUpdateThread()\n";
+		return FALSE;
+	}
+	
+	LONG error = 0;
+	error = DetourDetach((PVOID*)&funcs.m_fpCryptWrapper, (PVOID)CryptWrapper_Hook);
+	if (NO_ERROR != error) {
+		zlog.dbgFile << "Detach() DetourDetach(m_fpCryptWrapper) (" << error << ")\n";
+		return FALSE;
+	}
+	
+	error = DetourDetach((PVOID*)&funcs.m_pFishingPatch, (PVOID)Fishing_Hook);
+	if (NO_ERROR != error) {
+		zlog.dbgFile << "Detach() DetourDetach(m_pFishingPatch) (" << error << ")\n";
+		return FALSE;
+	}
+
+	error = DetourTransactionCommit();
+	if (NO_ERROR != error) {
+		zlog.dbgFile << "Detach() DetourTransactionCommit() (" << error << ")\n";
+		return FALSE;
+	}
+
+	CloseHandle(hPipe);
 
 	return TRUE;
 }
@@ -191,6 +225,8 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 		Main();
 		break;
 	case DLL_PROCESS_DETACH:
+		zlog.DbgBox(L"DETACH");		
+		Detach();		
 		break;
 	}
 	return TRUE;

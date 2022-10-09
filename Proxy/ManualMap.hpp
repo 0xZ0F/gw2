@@ -20,24 +20,37 @@ typedef struct {
     PBYTE pInMemory;
 }SHELLCODE_DATA, * PSHELLCODE_DATA;
 
-/// <summary>
-/// Map a DLL into a target process.
-/// </summary>
-/// <param name="proc">Handle to the process to map into.</param>
-/// <param name="dll">Path of the DLL to map.</param>
-/// <returns>TRUE on success, FALSE on failure.</returns>
-BOOL CustomMap(HANDLE proc, LPCWSTR dll);
+typedef class ManualMap {
+protected:
+    BOOL MapToMemory(HANDLE proc, PBYTE pData);
+public:
+    PVOID m_pShellcode;
+    PVOID m_pDllInMemory;
+    HANDLE m_hThread;
+    
+    SIZE_T m_stShellcodeSize;
+    SIZE_T m_stDllSize;
 
-/// <summary>
-/// Checks if the current process architecture matches the target's.
-/// </summary>
-/// <param name="hProc">Handle to the target process to check.</param>
-/// <returns>TRUE if the current process's and the target process's architectures match, FALSE otherwise.</returns>
-BOOL IsCorrectTargetArchitecture(HANDLE hProc);
+    DWORD m_PID;
 
-/// <summary>
-/// Shellcode function to be allocated in the target process.
-/// </summary>
-/// <param name="pShellcodeData"></param>
-/// <returns></returns>
-void __stdcall Shellcode(PSHELLCODE_DATA pShellcodeData);
+    ManualMap() : m_pShellcode(NULL), m_pDllInMemory(NULL), m_hThread(INVALID_HANDLE_VALUE), m_stShellcodeSize(0), m_stDllSize(0) {}
+    ~ManualMap() { CloseHandle(m_hThread); }
+
+    /// <summary>
+    /// Checks if the current process architecture matches the target's.
+    /// </summary>
+    /// <param name="hProc">Handle to the target process to check.</param>
+    /// <returns>TRUE if the current process's and the target process's architectures match, FALSE otherwise.</returns>
+    BOOL IsCorrectTargetArchitecture(HANDLE hProc);
+    BOOL ReadAllBytes(LPCWSTR pwszFileName, PBYTE* ppData, PDWORD pdwDataLen);
+
+    BOOL FreeDLL();
+
+    /// <summary>
+    /// Map a DLL into a target process.
+    /// </summary>
+    /// <param name="proc">Handle to the process to map into.</param>
+    /// <param name="dll">Path of the DLL to map.</param>
+    /// <returns>Returns a pointer to the manual map data on success, NULL on failure. Caller must delete the ManualMap pointer.</returns>
+    BOOL CustomMap(HANDLE proc, LPCWSTR dll);
+}*PManualMap;

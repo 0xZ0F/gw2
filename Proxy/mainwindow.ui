@@ -78,18 +78,30 @@
     <property name="title">
      <string>File</string>
     </property>
-    <addaction name="menu_Inject"/>
+    <addaction name="menu_Load"/>
+    <addaction name="menu_Unload"/>
    </widget>
    <addaction name="menuFile"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
-  <action name="menu_Inject">
+  <action name="menu_Load">
    <property name="icon">
     <iconset>
      <normaloff>assets/AnyConv.com__09e4ff41a8416ad38492aa52565bc81fa18ba112r1-716-344v2_uhq.ico</normaloff>assets/AnyConv.com__09e4ff41a8416ad38492aa52565bc81fa18ba112r1-716-344v2_uhq.ico</iconset>
    </property>
    <property name="text">
-    <string>Inject</string>
+    <string>Load DLL</string>
+   </property>
+   <property name="shortcut">
+    <string>I</string>
+   </property>
+  </action>
+  <action name="menu_Unload">
+   <property name="text">
+    <string>Unload DLL</string>
+   </property>
+   <property name="shortcut">
+    <string>U</string>
    </property>
   </action>
  </widget>
