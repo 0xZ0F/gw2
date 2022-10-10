@@ -29,12 +29,12 @@ void* __fastcall CryptWrapper_Hook(void* unk1, char* pkt, int pktLen) {
 
 	if (zlog.AnyFilesFailed()) {
 		zlog.DbgBox(L"CryptWrapper_Hook() AnyFilesFailed()");
-		return NULL;
+		return funcs.m_fpCryptWrapper(unk1, pkt, pktLen);
 	}
 
 	if (hPipe == INVALID_HANDLE_VALUE) {
 		zlog.DbgBox(L"Pipe handle invalid.");
-		return NULL;
+		return funcs.m_fpCryptWrapper(unk1, pkt, pktLen);
 	}
 
 	// Send to proxy
@@ -58,19 +58,19 @@ void* __fastcall CryptWrapper_Hook(void* unk1, char* pkt, int pktLen) {
 				zlog.dbgFile << e.what();
 			}
 			catch (...) {
-				zlog.dbgFile << "!!!!!!!!!!!!! UNKOWN EXCEPTION\n";
+				return funcs.m_fpCryptWrapper(unk1, pkt, pktLen);
 			}
 		}
 
 		manager.SetPacketSize(pktLen);
 		snprintf(manager.GetBuf(), manager.GetPacketSize(), str.c_str());
-		if (manager.SendPacket(hPipe) == FALSE) {
-			zlog.DbgBox(L"CryptWrapper_Hook() SendPacket()");
+		if (!manager.SendPacket(hPipe)) {
+			return funcs.m_fpCryptWrapper(unk1, pkt, pktLen);
 		}
 
 		// Get back from proxy
-		if (manager.RecvPacket(hPipe) == FALSE) {
-			zlog.DbgBox(L"CryptWrapper_Hook() RecvPacket()");
+		if (!manager.RecvPacket(hPipe)) {
+			return funcs.m_fpCryptWrapper(unk1, pkt, pktLen);
 		}
 
 		startPos = 0;
@@ -94,7 +94,7 @@ void* __fastcall CryptWrapper_Hook(void* unk1, char* pkt, int pktLen) {
 				toSend = pktLen;
 			}
 			catch (...) {
-				zlog.dbgFile << "WTF\n";
+				return funcs.m_fpCryptWrapper(unk1, pkt, pktLen);
 			}
 		}
 		//zlog.dbgFile << "----------------------------------\n";
@@ -131,7 +131,13 @@ void* __fastcall Fishing_Hook(void* base, INT64 speedMult, void* unk3, void* unk
 		fishingSpeedMultMax = speedMult;
 	}
 
-	return ((FishingFunc_t)funcs.m_pFishingPatch)(base, fishingSpeedMultMax, unk3, unk4);
+	return ((FishingFunc_t)funcs.m_fpFishingPatch)(base, fishingSpeedMultMax, unk3, unk4);
+}
+
+void* __fastcall PlayerLoad_Hook(void* unk1, void* unk2, void* unk3, void* unk4)
+{
+	PVOID playerStruct = ((PlayerFunc_t)funcs.m_fpPlayerFunc)(unk1, unk2, unk3, unk4);
+	return playerStruct;
 }
 
 BOOL Main() {
@@ -160,15 +166,21 @@ BOOL Main() {
 	}
 
 	// Resolve Functions
+	//zlog.dbgFile << "PlayerFunc: " << funcs.GetPlayerFunc() << std::endl;
 	zlog.dbgFile << "CryptWrapper: " << funcs.GetCryptWrapper() << std::endl;
 	zlog.dbgFile << "FishingPatch: " << funcs.GetFishingPatch() << std::endl;
+
+	// Instant complete fishing - buggy
+	/*float* pFishingStats = (float*)0x7FF6877755E4;
+	*pFishingStats = 2.0f;*/
 
 	// Detour Functions
 	DetourTransactionBegin();
 	DetourUpdateThread(::GetCurrentThread());
 
 	DetourAttach((PVOID*)&funcs.m_fpCryptWrapper, (PVOID)CryptWrapper_Hook);
-	DetourAttach((PVOID*)&funcs.m_pFishingPatch, (PVOID)Fishing_Hook);
+	DetourAttach((PVOID*)&funcs.m_fpFishingPatch, (PVOID)Fishing_Hook);
+	//DetourAttach((PVOID*)&funcs.m_fpPlayerFunc, (PVOID)PlayerLoad_Hook);
 
 	LONG error = DetourTransactionCommit();
 	if (error != NO_ERROR) {
@@ -191,15 +203,21 @@ BOOL Detach() {
 	}
 	
 	LONG error = 0;
+	/*error = DetourDetach((PVOID*)&funcs.m_fpPlayerFunc, (PVOID)PlayerLoad_Hook);
+	if (NO_ERROR != error) {
+		zlog.dbgFile << "Detach() DetourDetach(m_fpPlayerFunc) (" << error << ")\n";
+		return FALSE;
+	}*/
+	
 	error = DetourDetach((PVOID*)&funcs.m_fpCryptWrapper, (PVOID)CryptWrapper_Hook);
 	if (NO_ERROR != error) {
 		zlog.dbgFile << "Detach() DetourDetach(m_fpCryptWrapper) (" << error << ")\n";
 		return FALSE;
 	}
 	
-	error = DetourDetach((PVOID*)&funcs.m_pFishingPatch, (PVOID)Fishing_Hook);
+	error = DetourDetach((PVOID*)&funcs.m_fpFishingPatch, (PVOID)Fishing_Hook);
 	if (NO_ERROR != error) {
-		zlog.dbgFile << "Detach() DetourDetach(m_pFishingPatch) (" << error << ")\n";
+		zlog.dbgFile << "Detach() DetourDetach(m_fpFishingPatch) (" << error << ")\n";
 		return FALSE;
 	}
 
@@ -225,8 +243,12 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 		Main();
 		break;
 	case DLL_PROCESS_DETACH:
-		zlog.DbgBox(L"DETACH");		
-		Detach();		
+		if (Detach()) {
+			zlog.DbgBox(L"DLL Unloaded Successfully.");
+		}
+		else {
+			zlog.DbgBox(L"DLL unloaded failed. May have artifacts.");
+		}
 		break;
 	}
 	return TRUE;

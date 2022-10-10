@@ -3,19 +3,19 @@
 #include "ZLog.hpp"
 
 ZLog::ZLog() {
-	ZLog::dbgFile.open(ZLog::txt_dbgFile, std::ios::app);
-	ZLog::GUIFile.open(ZLog::txt_GUIFile, std::ios::app);
-	ZLog::tradeFile.open(ZLog::txt_tradeFile, std::ios::app);
+	dbgFile.open(ZLog::txt_dbgFile, std::ios::app);
+	GUIFile.open(ZLog::txt_GUIFile, std::ios::app);
+	tradeFile.open(ZLog::txt_tradeFile, std::ios::app);
 }
 
 ZLog::~ZLog() {
-	ZLog::dbgFile.close();
-	ZLog::GUIFile.close();
-	ZLog::tradeFile.close();
+	dbgFile.close();
+	GUIFile.close();
+	tradeFile.close();
 }
 
 BOOL ZLog::AnyFilesFailed() {
-	return ZLog::dbgFile.fail() || ZLog::GUIFile.fail() || ZLog::tradeFile.fail();
+	return dbgFile.fail() || GUIFile.fail() || tradeFile.fail();
 }
 
 VOID ZLog::DbgBox(LPCWSTR str) {
