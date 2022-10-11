@@ -2,7 +2,7 @@
 
 Clone: `git clone --recurse-submodules https://github.com/0xZ0F/gw2.git`
 
-> If needed, resolve submodules: `git submodule update --init --recurse`
+> If needed, resolve submodules: `git submodule update --init --recursive`
 
 # Building
 GW2FishingBot:
@@ -32,4 +32,4 @@ Output is in "Detours/lib.<ARCH>".
 * Add the .lib to additional dependencies in 'Project Properties > Linker > Input'
 
 # Usage:
-Launch the proxy. Once the game loads inject the DLL. Release build are recommended for use.
+Launch the proxy. Once the game loads, inject the DLL. Release builds are recommended for use.
