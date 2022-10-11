@@ -1,8 +1,23 @@
 # GW2 Hack
 
-clone: `git clone --recurse-submodules https://github.com/0xZ0F/gw2.git`
+Clone: `git clone --recurse-submodules https://github.com/0xZ0F/gw2.git`
 
 > If needed, resolve submodules: `git submodule update --init --recurse`
+
+# Building
+GW2FishingBot:
+* Deprecated
+* Python3
+
+CryptIntercept:
+* Built with Visual Studio
+* Depends on:
+  * Microsoft Detours
+
+Proxy:
+* Built with Visual Studio or QT (QT will probably fail).
+* Depends on:
+  * [QT](https://www.qt.io/)
 
 ## Building Detours:
 > Reference: https://github.com/microsoft/Detours/wiki/FAQ#where-can-i-find-detourslib-and-detoursh
@@ -15,3 +30,6 @@ Output is in "Detours/lib.<ARCH>".
 
 * Add the directory the .lib is in to the additional libraries directory in 'Project Properties > Linker > General'
 * Add the .lib to additional dependencies in 'Project Properties > Linker > Input'
+
+# Usage:
+Launch the proxy. Once the game loads inject the DLL. Release build are recommended for use.
