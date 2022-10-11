@@ -1,0 +1,1 @@
+Move the detours into a class. Either a new class or the patch class.

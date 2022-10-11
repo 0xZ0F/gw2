@@ -10,17 +10,6 @@ static ZLog zlog;
 static GW2Functions funcs;
 static PipeManager manager;
 
-static void ReadString(char* output, HANDLE file) {
-	ULONG read = 0;
-	int index = 0;
-	do {
-		if (!ReadFile(file, output + index++, 1, &read, NULL)) {
-			std::cerr << "ReadString() ReadFile() err\n";
-			return;
-		}
-	} while (read > 0 && *(output + index - 1) != 0);
-}
-
 void* __fastcall CryptWrapper_Hook(void* unk1, char* pkt, int pktLen) {
 	int toSend = pktLen;
 	int origLen = 0;
@@ -29,12 +18,12 @@ void* __fastcall CryptWrapper_Hook(void* unk1, char* pkt, int pktLen) {
 
 	if (zlog.AnyFilesFailed()) {
 		zlog.DbgBox(L"CryptWrapper_Hook() AnyFilesFailed()");
-		return funcs.m_fpCryptWrapper(unk1, pkt, pktLen);
+		return funcs.GetCryptWrapper()(unk1, pkt, pktLen);
 	}
 
 	if (hPipe == INVALID_HANDLE_VALUE) {
 		zlog.DbgBox(L"Pipe handle invalid.");
-		return funcs.m_fpCryptWrapper(unk1, pkt, pktLen);
+		return funcs.GetCryptWrapper()(unk1, pkt, pktLen);
 	}
 
 	// Send to proxy
@@ -58,19 +47,19 @@ void* __fastcall CryptWrapper_Hook(void* unk1, char* pkt, int pktLen) {
 				zlog.dbgFile << e.what();
 			}
 			catch (...) {
-				return funcs.m_fpCryptWrapper(unk1, pkt, pktLen);
+				return funcs.GetCryptWrapper()(unk1, pkt, pktLen);
 			}
 		}
 
 		manager.SetPacketSize(pktLen);
 		snprintf(manager.GetBuf(), manager.GetPacketSize(), str.c_str());
 		if (!manager.SendPacket(hPipe)) {
-			return funcs.m_fpCryptWrapper(unk1, pkt, pktLen);
+			return funcs.GetCryptWrapper()(unk1, pkt, pktLen);
 		}
 
 		// Get back from proxy
 		if (!manager.RecvPacket(hPipe)) {
-			return funcs.m_fpCryptWrapper(unk1, pkt, pktLen);
+			return funcs.GetCryptWrapper()(unk1, pkt, pktLen);
 		}
 
 		startPos = 0;
@@ -94,12 +83,12 @@ void* __fastcall CryptWrapper_Hook(void* unk1, char* pkt, int pktLen) {
 				toSend = pktLen;
 			}
 			catch (...) {
-				return funcs.m_fpCryptWrapper(unk1, pkt, pktLen);
+				return funcs.GetCryptWrapper()(unk1, pkt, pktLen);
 			}
 		}
 		//zlog.dbgFile << "----------------------------------\n";
 	}
-	
+
 
 	// GUI log
 	zlog.GUIFile << "--------------" << "Len: " << pktLen
@@ -116,7 +105,7 @@ void* __fastcall CryptWrapper_Hook(void* unk1, char* pkt, int pktLen) {
 		STILL SENDING UNEDITIED PACKET
 	-------------------------------------
 	*/
-	return funcs.m_fpCryptWrapper(unk1, pkt, pktLen);
+	return funcs.GetCryptWrapper()(unk1, pkt, pktLen);
 }
 
 void* __fastcall Fishing_Hook(void* base, INT64 speedMult, void* unk3, void* unk4)
@@ -131,12 +120,12 @@ void* __fastcall Fishing_Hook(void* base, INT64 speedMult, void* unk3, void* unk
 		fishingSpeedMultMax = speedMult;
 	}
 
-	return ((FishingFunc_t)funcs.m_fpFishingPatch)(base, fishingSpeedMultMax, unk3, unk4);
+	return funcs.GetFishingPatch()(base, fishingSpeedMultMax, unk3, unk4);
 }
 
 void* __fastcall PlayerLoad_Hook(void* unk1, void* unk2, void* unk3, void* unk4)
 {
-	PVOID playerStruct = ((PlayerFunc_t)funcs.m_fpPlayerFunc)(unk1, unk2, unk3, unk4);
+	PVOID playerStruct = funcs.GetPlayerFunc()(unk1, unk2, unk3, unk4);
 	return playerStruct;
 }
 
@@ -196,25 +185,25 @@ BOOL Detach() {
 		zlog.dbgFile << "Detach() DetourTransactionBegin()\n";
 		return FALSE;
 	}
-	
+
 	if (NO_ERROR != DetourUpdateThread(GetCurrentThread())) {
 		zlog.dbgFile << "Detach() DetourUpdateThread()\n";
 		return FALSE;
 	}
-	
+
 	LONG error = 0;
 	/*error = DetourDetach((PVOID*)&funcs.m_fpPlayerFunc, (PVOID)PlayerLoad_Hook);
 	if (NO_ERROR != error) {
 		zlog.dbgFile << "Detach() DetourDetach(m_fpPlayerFunc) (" << error << ")\n";
 		return FALSE;
 	}*/
-	
+
 	error = DetourDetach((PVOID*)&funcs.m_fpCryptWrapper, (PVOID)CryptWrapper_Hook);
 	if (NO_ERROR != error) {
 		zlog.dbgFile << "Detach() DetourDetach(m_fpCryptWrapper) (" << error << ")\n";
 		return FALSE;
 	}
-	
+
 	error = DetourDetach((PVOID*)&funcs.m_fpFishingPatch, (PVOID)Fishing_Hook);
 	if (NO_ERROR != error) {
 		zlog.dbgFile << "Detach() DetourDetach(m_fpFishingPatch) (" << error << ")\n";
@@ -232,12 +221,12 @@ BOOL Detach() {
 	return TRUE;
 }
 
-BOOL APIENTRY DllMain(HMODULE hModule,
-	DWORD  ul_reason_for_call,
-	LPVOID lpReserved
-)
+BOOL APIENTRY DllMain(HMODULE hModule, DWORD  dwReason, LPVOID lpReserved)
 {
-	switch (ul_reason_for_call)
+	UNREFERENCED_PARAMETER(dwReason);
+	UNREFERENCED_PARAMETER(lpReserved);
+
+	switch (dwReason)
 	{
 	case DLL_PROCESS_ATTACH:
 		Main();
