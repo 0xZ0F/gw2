@@ -3,12 +3,12 @@
 #include "ZLog.hpp"
 #include "Pattern.hpp"
 #include "GW2Functions.hpp"
-#include "Packet.hpp"
+#include "PipeManager.hpp"
 
-ZLog zlog;
-GW2Functions funcs;
-HANDLE hPipe;
-PACKET packet;
+static HANDLE hPipe;
+static ZLog zlog;
+static GW2Functions funcs;
+static PipeManager manager;
 
 static void ReadString(char* output, HANDLE file) {
 	ULONG read = 0;
@@ -29,28 +29,27 @@ void* __fastcall CryptWrapper_Hook(void* unk1, char* pkt, int pktLen) {
 
 	if (zlog.AnyFilesFailed()) {
 		zlog.DbgBox(L"CryptWrapper_Hook() AnyFilesFailed()");
-		return NULL;
+		return funcs.m_fpCryptWrapper(unk1, pkt, pktLen);
 	}
 
 	if (hPipe == INVALID_HANDLE_VALUE) {
-		zlog.DbgBox(L"Invalid handle value");
-		return NULL;
+		zlog.DbgBox(L"Pipe handle invalid.");
+		return funcs.m_fpCryptWrapper(unk1, pkt, pktLen);
 	}
 
 	// Send to proxy
-	memset(&packet, 0, sizeof(packet));
-	/*
-	if (pktLen < sizeof(packet.buf)) {
+	manager.ZeroPacket();
+	if (pktLen < manager.GetBufSize()) {
 		size_t startPos = 0;
 		size_t endPos = 0;
 
 		startPos = str.find("l:");
 		endPos = str.find("\r", startPos);
 		if (startPos != std::string::npos && endPos != std::string::npos) {
-			zlog.dbgFile << "----------------------------------\n";
+			//zlog.dbgFile << "----------------------------------\n";
 			try {
 				origLen = std::stoi(str.substr(startPos + 2, endPos - startPos));
-				zlog.dbgFile << "origLen: " << origLen << "\n";
+				//zlog.dbgFile << "origLen: " << origLen << "\n";
 			}
 			catch (std::invalid_argument const& e) {
 				zlog.dbgFile << e.what();
@@ -59,31 +58,31 @@ void* __fastcall CryptWrapper_Hook(void* unk1, char* pkt, int pktLen) {
 				zlog.dbgFile << e.what();
 			}
 			catch (...) {
-				zlog.dbgFile << "!!!!!!!!!!!!! UNKOWN EXCEPTION\n";
+				return funcs.m_fpCryptWrapper(unk1, pkt, pktLen);
 			}
 		}
 
-		packet.size = pktLen;
-		snprintf(packet.buf, sizeof(packet.buf), str.c_str());
-		if (SendPacket(hPipe, &packet) == FALSE) {
-			zlog.DbgBox(L"CryptWrapper_Hook() SendPacket()");
+		manager.SetPacketSize(pktLen);
+		snprintf(manager.GetBuf(), manager.GetPacketSize(), str.c_str());
+		if (!manager.SendPacket(hPipe)) {
+			return funcs.m_fpCryptWrapper(unk1, pkt, pktLen);
 		}
 
 		// Get back from proxy
-		if (RecvPacket(hPipe, &packet) == FALSE) {
-			zlog.DbgBox(L"CryptWrapper_Hook() SendPacket()");
+		if (!manager.RecvPacket(hPipe)) {
+			return funcs.m_fpCryptWrapper(unk1, pkt, pktLen);
 		}
 
 		startPos = 0;
 		endPos = 0;
-		str = std::string(packet.buf, sizeof(packet.buf));
+		str = std::string(manager.GetBuf(), manager.GetPacketSize());
 		startPos = str.find("l:");
 		endPos = str.find("\r", startPos);
 		if (startPos != std::string::npos && endPos != std::string::npos) {
 			try {
 				newLen = std::stoi(str.substr(startPos + 2, endPos - startPos));
 				pktLen = pktLen + origLen - newLen;
-				zlog.dbgFile << "New: " << pktLen << "\n";
+				//zlog.dbgFile << "New: " << pktLen << "\n";
 				toSend = pktLen;
 			}
 			catch (std::invalid_argument const& e) {
@@ -95,12 +94,12 @@ void* __fastcall CryptWrapper_Hook(void* unk1, char* pkt, int pktLen) {
 				toSend = pktLen;
 			}
 			catch (...) {
-				zlog.dbgFile << "WTF\n";
+				return funcs.m_fpCryptWrapper(unk1, pkt, pktLen);
 			}
 		}
-		zlog.dbgFile << "----------------------------------\n";
+		//zlog.dbgFile << "----------------------------------\n";
 	}
-	*/
+	
 
 	// GUI log
 	zlog.GUIFile << "--------------" << "Len: " << pktLen
@@ -132,11 +131,16 @@ void* __fastcall Fishing_Hook(void* base, INT64 speedMult, void* unk3, void* unk
 		fishingSpeedMultMax = speedMult;
 	}
 
-	return ((FishingFunc_t)funcs.m_pFishingPatch)(base, fishingSpeedMultMax, unk3, unk4);
+	return ((FishingFunc_t)funcs.m_fpFishingPatch)(base, fishingSpeedMultMax, unk3, unk4);
+}
+
+void* __fastcall PlayerLoad_Hook(void* unk1, void* unk2, void* unk3, void* unk4)
+{
+	PVOID playerStruct = ((PlayerFunc_t)funcs.m_fpPlayerFunc)(unk1, unk2, unk3, unk4);
+	return playerStruct;
 }
 
 BOOL Main() {
-	LONG error = 0;
 	HMODULE modBase = 0;
 
 	if (zlog.AnyFilesFailed()) {
@@ -144,29 +148,86 @@ BOOL Main() {
 		return FALSE;
 	}
 
-	memset(&packet, 0, sizeof(packet));
-	hPipe = OpenPipe(L"\\\\.\\pipe\\Z0F_Pipe", GENERIC_READ | GENERIC_WRITE);
+	hPipe = CreateFile(PIPE_NAME, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+	if (INVALID_HANDLE_VALUE == hPipe) {
+		zlog.dbgFile << "OpenPipe() CreateFile() err: " << GetLastError() << std::endl;
+		return FALSE;
+	}
+
+	DWORD lpMode = PIPE_READMODE_MESSAGE;
+	if (FALSE == SetNamedPipeHandleState(hPipe, &lpMode, NULL, NULL)) {
+		zlog.dbgFile << "SetNamedPipeHandleState() err: " << GetLastError() << std::endl;
+		return FALSE;
+	}
+
 	if (hPipe == INVALID_HANDLE_VALUE) {
 		zlog.DbgBox(L"main() OpenPipe() err");
 		return FALSE;
 	}
 
 	// Resolve Functions
+	//zlog.dbgFile << "PlayerFunc: " << funcs.GetPlayerFunc() << std::endl;
 	zlog.dbgFile << "CryptWrapper: " << funcs.GetCryptWrapper() << std::endl;
 	zlog.dbgFile << "FishingPatch: " << funcs.GetFishingPatch() << std::endl;
+
+	// Instant complete fishing - buggy
+	/*float* pFishingStats = (float*)0x7FF6877755E4;
+	*pFishingStats = 2.0f;*/
 
 	// Detour Functions
 	DetourTransactionBegin();
 	DetourUpdateThread(::GetCurrentThread());
 
 	DetourAttach((PVOID*)&funcs.m_fpCryptWrapper, (PVOID)CryptWrapper_Hook);
-	DetourAttach((PVOID*)&funcs.m_pFishingPatch, (PVOID)Fishing_Hook);
+	DetourAttach((PVOID*)&funcs.m_fpFishingPatch, (PVOID)Fishing_Hook);
+	//DetourAttach((PVOID*)&funcs.m_fpPlayerFunc, (PVOID)PlayerLoad_Hook);
 
-	error = DetourTransactionCommit();
+	LONG error = DetourTransactionCommit();
 	if (error != NO_ERROR) {
-		zlog.dbgFile << "Failed to detour.\n";
+		zlog.dbgFile << "Failed to detour (" << error << ")\n";
 		return FALSE;
 	}
+
+	return TRUE;
+}
+
+BOOL Detach() {
+	if (NO_ERROR != DetourTransactionBegin()) {
+		zlog.dbgFile << "Detach() DetourTransactionBegin()\n";
+		return FALSE;
+	}
+	
+	if (NO_ERROR != DetourUpdateThread(GetCurrentThread())) {
+		zlog.dbgFile << "Detach() DetourUpdateThread()\n";
+		return FALSE;
+	}
+	
+	LONG error = 0;
+	/*error = DetourDetach((PVOID*)&funcs.m_fpPlayerFunc, (PVOID)PlayerLoad_Hook);
+	if (NO_ERROR != error) {
+		zlog.dbgFile << "Detach() DetourDetach(m_fpPlayerFunc) (" << error << ")\n";
+		return FALSE;
+	}*/
+	
+	error = DetourDetach((PVOID*)&funcs.m_fpCryptWrapper, (PVOID)CryptWrapper_Hook);
+	if (NO_ERROR != error) {
+		zlog.dbgFile << "Detach() DetourDetach(m_fpCryptWrapper) (" << error << ")\n";
+		return FALSE;
+	}
+	
+	error = DetourDetach((PVOID*)&funcs.m_fpFishingPatch, (PVOID)Fishing_Hook);
+	if (NO_ERROR != error) {
+		zlog.dbgFile << "Detach() DetourDetach(m_fpFishingPatch) (" << error << ")\n";
+		return FALSE;
+	}
+
+	error = DetourTransactionCommit();
+	if (NO_ERROR != error) {
+		zlog.dbgFile << "Detach() DetourTransactionCommit() (" << error << ")\n";
+		return FALSE;
+	}
+
+	CloseHandle(hPipe);
 
 	return TRUE;
 }
@@ -179,10 +240,15 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 	switch (ul_reason_for_call)
 	{
 	case DLL_PROCESS_ATTACH:
-		zlog.DbgBox(L"GW2 Hack Loaded");
 		Main();
 		break;
 	case DLL_PROCESS_DETACH:
+		if (Detach()) {
+			zlog.DbgBox(L"DLL Unloaded Successfully.");
+		}
+		else {
+			zlog.DbgBox(L"DLL unloaded failed. May have artifacts.");
+		}
 		break;
 	}
 	return TRUE;

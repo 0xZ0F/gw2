@@ -1,3 +1,6 @@
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+
 #include "mainwindow.h"
 
 #include <QApplication>
@@ -17,6 +20,7 @@ int main(int argc, char *argv[])
             break;
         }
     }
+
     MainWindow w;
     w.show();
     return a.exec();
