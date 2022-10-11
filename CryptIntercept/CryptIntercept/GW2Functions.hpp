@@ -26,7 +26,7 @@ public:
 	/// <param name="pMod">(Optional) Name of a module.</param>
 	/// <param name="fForce">(Optional) Force get the module, even if it's already resolved.</param>
 	/// <returns>TRUE on success, FALSE on failure.</returns>
-	BOOL ResolveModBase(PCWSTR pMod = L"gw2-64.exe", BOOL fForce = FALSE);
+	BOOL ResolveModBase(const PCWSTR pMod = L"gw2-64.exe", BOOL fForce = FALSE);
 
 	/// <summary>
 	/// Resolve the pointer to the player constructor.
