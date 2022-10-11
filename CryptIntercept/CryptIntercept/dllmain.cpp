@@ -111,7 +111,7 @@ void* __fastcall CryptWrapper_Hook(void* unk1, char* pkt, int pktLen) {
 void* __fastcall Fishing_Hook(void* base, INT64 speedMult, void* unk3, void* unk4)
 {
 	// Dynamic max for evasion (hopefully)
-	static INT64 fishingSpeedMultMax = 1;
+	static INT64 fishingSpeedMultMax = 30;
 
 	// Set the green dot to the middle.
 	*((float*)((UINT_PTR)base + 0x14)) = 0.5f;
@@ -159,9 +159,8 @@ BOOL Main() {
 	zlog.dbgFile << "CryptWrapper: " << funcs.GetCryptWrapper() << std::endl;
 	zlog.dbgFile << "FishingPatch: " << funcs.GetFishingPatch() << std::endl;
 
-	// Instant complete fishing - buggy
-	/*float* pFishingStats = (float*)0x7FF6877755E4;
-	*pFishingStats = 2.0f;*/
+	// Instantly complete fishing
+	*(float*)0x7FF7286555E4 = 5.0f;
 
 	// Detour Functions
 	DetourTransactionBegin();
