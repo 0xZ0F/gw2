@@ -1,5 +1,9 @@
 # GW2 Hack
 
+clone: `git clone --recurse-submodules https://github.com/0xZ0F/gw2.git`
+
+> If needed, resolve submodules: `git submodule update --init --recurse`
+
 ## Building Detours:
 > Reference: https://github.com/microsoft/Detours/wiki/FAQ#where-can-i-find-detourslib-and-detoursh
 
