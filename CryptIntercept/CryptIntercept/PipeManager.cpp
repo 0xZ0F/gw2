@@ -11,12 +11,12 @@ PipeManager::PipeManager() {
     SetPipeName(pName, sizeof(pName));
 }
 
-PipeManager::PipeManager(PCWSTR name, DWORD len) {
+PipeManager::PipeManager(const PCWSTR name, DWORD len) {
     ZeroMemory(&m_packet, sizeof(m_packet));
     SetPipeName(name, len);
 }
 
-VOID PipeManager::SetPipeName(PCWSTR name, DWORD len) {
+VOID PipeManager::SetPipeName(const PCWSTR name, DWORD len) {
     m_pPipeNameLen = len;
     m_pPipeName = std::make_unique<WCHAR[]>(m_pPipeNameLen);
     CopyMemory(m_pPipeName.get(), name, m_pPipeNameLen);
@@ -66,7 +66,7 @@ HANDLE PipeManager::SetupPipe() {
     return hPipe;
 }
 
-HANDLE PipeManager::OpenPipe(LPCWSTR pipeName) {
+HANDLE PipeManager::OpenPipe(const LPCWSTR pipeName) {
     HANDLE hPipe = INVALID_HANDLE_VALUE;
 
     if (NULL == pipeName) {

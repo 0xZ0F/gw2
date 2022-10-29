@@ -18,7 +18,7 @@ GW2Functions::~GW2Functions()
 	CloseHandle(m_hModBase);
 }
 
-BOOL GW2Functions::ResolveModBase(PCWSTR pMod, BOOL fForce)
+BOOL GW2Functions::ResolveModBase(const PCWSTR pMod, BOOL fForce)
 {
 	if (fForce || m_hModBase == NULL) {
 		m_hModBase = GetModuleHandle(pMod);
