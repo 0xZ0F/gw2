@@ -1,8 +1,4 @@
-#include "pch.h"
-
 #include "PipeManager.hpp"
-
-#include <iostream>
 
 PipeManager::PipeManager() {
     ZeroMemory(&m_packet, sizeof(m_packet));

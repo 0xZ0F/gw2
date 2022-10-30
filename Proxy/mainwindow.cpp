@@ -1,10 +1,3 @@
-#include <Windows.h>
-#include <tlhelp32.h>
-#include <iostream>
-
-#include <QThread>
-#include <QFileDialog>
-
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
 
@@ -68,10 +61,19 @@ void MainWindow::HandlePipe(){
         ClearOut();
         Output(manager.GetBuf());
 
+        // If intercept is checked...
         if(ui->chk_Intercept->checkState() == Qt::Checked){
             QEventLoop loop;
             QObject::connect(ui->btn_Send, SIGNAL(clicked()), &loop, SLOT(quit()));
+        
+            // Wait until button is pressed
             loop.exec();
+            
+            // Send modified packet
+            std::string text = ui->txt_Out->toPlainText().toStdString();
+            manager.SetPacketSize(text.length());
+            DbgPrint("New length: " + QString::number(text.length()));
+            CopyMemory(manager.GetBuf(), text.c_str(), text.length());
         }
 
         if(!manager.SendPacket(hPipe)){
@@ -177,4 +179,3 @@ void MainWindow::on_menu_Unload_triggered()
         DbgPrint("FreeAll() failed: " + QString::number(GetLastError()));
     }
 }
-

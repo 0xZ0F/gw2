@@ -1,5 +1,3 @@
-#include "pch.h"
-
 #include "ZLog.hpp"
 #include "Pattern.hpp"
 #include "GW2Functions.hpp"
@@ -26,70 +24,6 @@ void* __fastcall CryptWrapper_Hook(void* unk1, char* pkt, int pktLen) {
 		return funcs.GetCryptWrapper()(unk1, pkt, pktLen);
 	}
 
-	// Send to proxy
-	manager.ZeroPacket();
-	if (pktLen < manager.GetBufSize()) {
-		size_t startPos = 0;
-		size_t endPos = 0;
-
-		startPos = str.find("l:");
-		endPos = str.find("\r", startPos);
-		if (startPos != std::string::npos && endPos != std::string::npos) {
-			//zlog.dbgFile << "----------------------------------\n";
-			try {
-				origLen = std::stoi(str.substr(startPos + 2, endPos - startPos));
-				//zlog.dbgFile << "origLen: " << origLen << "\n";
-			}
-			catch (std::invalid_argument const& e) {
-				zlog.dbgFile << e.what();
-			}
-			catch (std::out_of_range const& e) {
-				zlog.dbgFile << e.what();
-			}
-			catch (...) {
-				return funcs.GetCryptWrapper()(unk1, pkt, pktLen);
-			}
-		}
-
-		manager.SetPacketSize(pktLen);
-		snprintf(manager.GetBuf(), manager.GetPacketSize(), str.c_str());
-		if (!manager.SendPacket(hPipe)) {
-			return funcs.GetCryptWrapper()(unk1, pkt, pktLen);
-		}
-
-		// Get back from proxy
-		if (!manager.RecvPacket(hPipe)) {
-			return funcs.GetCryptWrapper()(unk1, pkt, pktLen);
-		}
-
-		startPos = 0;
-		endPos = 0;
-		str = std::string(manager.GetBuf(), manager.GetPacketSize());
-		startPos = str.find("l:");
-		endPos = str.find("\r", startPos);
-		if (startPos != std::string::npos && endPos != std::string::npos) {
-			try {
-				newLen = std::stoi(str.substr(startPos + 2, endPos - startPos));
-				pktLen = pktLen + origLen - newLen;
-				//zlog.dbgFile << "New: " << pktLen << "\n";
-				toSend = pktLen;
-			}
-			catch (std::invalid_argument const& e) {
-				zlog.dbgFile << e.what();
-				toSend = pktLen;
-			}
-			catch (std::out_of_range const& e) {
-				zlog.dbgFile << e.what();
-				toSend = pktLen;
-			}
-			catch (...) {
-				return funcs.GetCryptWrapper()(unk1, pkt, pktLen);
-			}
-		}
-		//zlog.dbgFile << "----------------------------------\n";
-	}
-
-
 	// GUI log
 	zlog.GUIFile << "--------------" << "Len: " << pktLen
 		<< "--------------\n" << str << std::endl << "----------------------------\n";
@@ -100,27 +34,73 @@ void* __fastcall CryptWrapper_Hook(void* unk1, char* pkt, int pktLen) {
 			<< "--------------\n" << str << std::endl << "----------------------------\n";
 	}
 
-	/*
-	-------------------------------------
-		STILL SENDING UNEDITIED PACKET
-	-------------------------------------
-	*/
+	if (pktLen <= manager.GetBufSize()) {
+		manager.ZeroPacket();
+		manager.SetPacketSize(pktLen);
+		CopyMemory(manager.GetBuf(), pkt, pktLen);
+
+		if (!manager.SendPacket(hPipe)) {
+			return funcs.GetCryptWrapper()(unk1, pkt, pktLen);
+		}
+
+		// Get back from proxy
+		if (!manager.RecvPacket(hPipe)) {
+			return funcs.GetCryptWrapper()(unk1, pkt, pktLen);
+		}
+
+		// Send edited packet
+		return funcs.GetCryptWrapper()(unk1, manager.GetBuf(), manager.GetPacketSize());
+	}
+
+	// Send unedited packet
 	return funcs.GetCryptWrapper()(unk1, pkt, pktLen);
 }
 
 void* __fastcall Fishing_Hook(void* base, INT64 speedMult, void* unk3, void* unk4)
 {
-	// Dynamic max for evasion (hopefully)
-	static INT64 fishingSpeedMultMax = 30;
+#pragma pack(push, 1)
+	struct FishingInfo {
+		/*
+		000001A0DF6BCF40           UNK---FUNC---ADDR           UNK---rdata---PTR
+		000001A0DF6BCF50      progress     green loc      hole loc     hole size
+		000001A0DF6BCF60             0   -0.00046757   1.6171e-042             0
+		000001A0DF6BCF70             0             0             1           0.5
+		000001A0DF6BCF80   grn spd inc  grn base spd          5000          3000
+		000001A0DF6BCF90           0.5    fail speed success speed      0.000405
+		*/
+		PVOID pUnk1;
+		PVOID pUnk2;
+		float flProgress;
+		float flGreenLoc;
+		float flHoleLoc;
+		float flHoleSize;
+		DWORD dwUnk3;
+		DWORD dwUnk4;
+		DWORD dwUnk5;
+		DWORD dwUnk6;
+		DWORD dwUnk7;
+		DWORD dwUnk8;
+		DWORD dwUnk9;
+		DWORD dwUnk10;
+		float flGreenSpeadInc;
+		float flGreenBaseSpeed;
+		DWORD dwUnk11;
+		DWORD dwUnk12;
+		DWORD dwUnk13;
+		float flFailSpeed;
+		float flSuccessSpeed;
+		DWORD dwUnk14;
+	};
+#pragma pack(pop)
 
-	// Set the green dot to the middle.
-	*((float*)((UINT_PTR)base + 0x14)) = 0.5f;
+	FishingInfo* info = static_cast<FishingInfo*>(base);
 
-	if (speedMult > fishingSpeedMultMax) {
-		fishingSpeedMultMax = speedMult;
-	}
+	info->flProgress = std::max(info->flProgress, 0.95f);
+	info->flGreenLoc = 0.5f;
+	info->flHoleLoc = 0.5f;
+	info->flHoleSize = 2.5f;
 
-	return funcs.GetFishingPatch()(base, fishingSpeedMultMax, unk3, unk4);
+	return funcs.GetFishingPatch()(base, speedMult, unk3, unk4);
 }
 
 void* __fastcall PlayerLoad_Hook(void* unk1, void* unk2, void* unk3, void* unk4)
@@ -160,12 +140,12 @@ BOOL Main() {
 	zlog.dbgFile << "FishingPatch: " << funcs.GetFishingPatch() << std::endl;
 
 	// Instantly complete fishing
-	*(float*)0x7FF7286555E4 = 5.0f;
+	//*(float*)0x7FF7286555E4 = 5.0f;
 
 	// Detour Functions
 	DetourTransactionBegin();
 	DetourUpdateThread(::GetCurrentThread());
-
+	
 	DetourAttach((PVOID*)&funcs.m_fpCryptWrapper, (PVOID)CryptWrapper_Hook);
 	DetourAttach((PVOID*)&funcs.m_fpFishingPatch, (PVOID)Fishing_Hook);
 	//DetourAttach((PVOID*)&funcs.m_fpPlayerFunc, (PVOID)PlayerLoad_Hook);

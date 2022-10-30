@@ -27,9 +27,6 @@
     <ClInclude Include="ZLog.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PipeManager.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -47,7 +44,7 @@
     <ClCompile Include="ZLog.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="PipeManager.cpp">
+    <ClCompile Include="..\..\Common\PipeManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

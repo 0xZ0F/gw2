@@ -1,5 +1,7 @@
 #pragma once
 
+#include <fstream>
+
 class ZLog {
 private:
 	const std::string txt_dbgFile = "_Z0F_DBG.txt";

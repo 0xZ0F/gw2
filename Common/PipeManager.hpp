@@ -1,8 +1,10 @@
 #pragma once
 
+#define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <memory>
+#include <iostream>
 
 #define PIPE_NAME L"\\\\.\\pipe\\Z0F_Pipe"
 
@@ -25,7 +27,7 @@ public:
 	/// </summary>
 	/// <param name="name">Name of the pipe.</param>
 	/// <param name="len">Length of the pipe name.</param>
-	PipeManager(PCWSTR name, DWORD len);
+	PipeManager(const PCWSTR name, DWORD len);
 
 	/// <summary>
 	/// Get the length of the pipe name.
@@ -38,7 +40,7 @@ public:
 	/// </summary>
 	/// <param name="name">Name of the pipe.</param>
 	/// <param name="len">Length of the pipe name.</param>
-	VOID SetPipeName(PCWSTR name, DWORD len);
+	VOID SetPipeName(const PCWSTR name, DWORD len);
 
 	/// <summary>
 	/// Get the size field of the packet.
@@ -81,7 +83,7 @@ public:
 	/// <param name="pipeName">Name of the pipe to open.</param>
 	/// <param name="desiredAccess">Desired access for the pipe.</param>
 	/// <returns>HANDLE to the pipe on success, INVALID_HANDLE_VALUE on failure.</returns>
-	HANDLE OpenPipe(LPCWSTR pipeName);
+	HANDLE OpenPipe(const LPCWSTR pipeName);
 
 	/// <summary>
 	/// Send a packet over a pipe.

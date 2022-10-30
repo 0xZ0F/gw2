@@ -1,5 +1,3 @@
-#include "pch.h"
-
 #include "Pattern.hpp"
 #include "GW2Functions.hpp"
 

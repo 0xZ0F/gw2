@@ -1,5 +1,7 @@
 #pragma once
 
+#include <minwindef.h>
+
 using CryptWrapper_t = void* (__fastcall*)(void* unk1, char* pkt, int unk2);
 using FishingFunc_t = void* (__fastcall*)(void* base, INT64 speedMult, void* unk3, void* unk4);
 using PlayerFunc_t = void* (__fastcall*)(void* unk1, void* unk2, void* unk3, void* unk4);
