@@ -1,26 +1,25 @@
 #include "ZLog.hpp"
 #include "Pattern.hpp"
 #include "GW2Functions.hpp"
-#include "PipeManager.hpp"
+#include "Comms.hpp"
+#include "detours.h"
 
-static HANDLE hPipe;
 static ZLog zlog;
 static GW2Functions funcs;
-static PipeManager manager;
+static Comms comms;
 
 void* __fastcall CryptWrapper_Hook(void* unk1, char* pkt, int pktLen) {
 	int toSend = pktLen;
 	int origLen = 0;
 	int newLen = 0;
-	std::string str(pkt, pktLen);
+	std::string str(pkt, pkt + pktLen);
 
+	PipePacket packet;
+	packet.m_size = pktLen;
+	packet.m_data.assign(pkt, pkt + pktLen);
+	
 	if (zlog.AnyFilesFailed()) {
 		zlog.DbgBox(L"CryptWrapper_Hook() AnyFilesFailed()");
-		return funcs.GetCryptWrapper()(unk1, pkt, pktLen);
-	}
-
-	if (hPipe == INVALID_HANDLE_VALUE) {
-		zlog.DbgBox(L"Pipe handle invalid.");
 		return funcs.GetCryptWrapper()(unk1, pkt, pktLen);
 	}
 
@@ -34,22 +33,17 @@ void* __fastcall CryptWrapper_Hook(void* unk1, char* pkt, int pktLen) {
 			<< "--------------\n" << str << std::endl << "----------------------------\n";
 	}
 
-	if (pktLen <= manager.GetBufSize()) {
-		manager.ZeroPacket();
-		manager.SetPacketSize(pktLen);
-		CopyMemory(manager.GetBuf(), pkt, pktLen);
-
-		if (!manager.SendPacket(hPipe)) {
+	if (pktLen <= 4096) {
+		if (!comms.SendPacket(packet)) {
 			return funcs.GetCryptWrapper()(unk1, pkt, pktLen);
 		}
 
-		// Get back from proxy
-		if (!manager.RecvPacket(hPipe)) {
+		if (!comms.RecvPacket(packet)) {
 			return funcs.GetCryptWrapper()(unk1, pkt, pktLen);
 		}
 
 		// Send edited packet
-		return funcs.GetCryptWrapper()(unk1, manager.GetBuf(), manager.GetPacketSize());
+		return funcs.GetCryptWrapper()(unk1, packet.m_data.data(), packet.m_size);
 	}
 
 	// Send unedited packet
@@ -117,20 +111,8 @@ BOOL Main() {
 		return FALSE;
 	}
 
-	hPipe = CreateFile(PIPE_NAME, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
-	if (INVALID_HANDLE_VALUE == hPipe) {
-		zlog.dbgFile << "OpenPipe() CreateFile() err: " << GetLastError() << std::endl;
-		return FALSE;
-	}
-
-	DWORD lpMode = PIPE_READMODE_MESSAGE;
-	if (FALSE == SetNamedPipeHandleState(hPipe, &lpMode, NULL, NULL)) {
-		zlog.dbgFile << "SetNamedPipeHandleState() err: " << GetLastError() << std::endl;
-		return FALSE;
-	}
-
-	if (hPipe == INVALID_HANDLE_VALUE) {
-		zlog.DbgBox(L"main() OpenPipe() err");
+	if (!comms.OpenPipe()) {
+		zlog.dbgFile << "OpenPipe()\n";
 		return FALSE;
 	}
 
@@ -194,8 +176,6 @@ BOOL Detach() {
 		zlog.dbgFile << "Detach() DetourTransactionCommit() (" << error << ")\n";
 		return FALSE;
 	}
-
-	CloseHandle(hPipe);
 
 	return TRUE;
 }

@@ -128,6 +128,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(ProjectDir)\..\..\Common;$(ProjectDir)\..\..\detours\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ForcedIncludeFiles>pch.h</ForcedIncludeFiles>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -167,6 +168,7 @@
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\Common\Comms.cpp" />
     <ClCompile Include="..\..\Common\PipeManager.cpp" />
     <ClCompile Include="ZLog.cpp" />
     <ClCompile Include="dllmain.cpp" />
