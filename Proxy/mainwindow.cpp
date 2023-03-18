@@ -1,9 +1,6 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
 
-#include "Comms.hpp"
-#include "ManualMap.hpp"
-
 MainWindow::MainWindow(QWidget* parent)
 	: QMainWindow(parent),
 	ui(new Ui::MainWindow)
@@ -11,6 +8,7 @@ MainWindow::MainWindow(QWidget* parent)
 	m_pMMData = std::make_unique<ManualMap>();
 
 	ui->setupUi(this);
+	
 	pipeThread = QThread::create(&MainWindow::HandlePipe, this);
 	pipeThread->start();
 }
@@ -40,16 +38,27 @@ void MainWindow::HandlePipe() {
 	Comms comms;
 	PipePacket packet;
 
+	RPC_STATUS status = 0;
+
 	if (!comms.CreatePipe()) {
 		DbgPrint("CreatePipe(): " + QString::number(::GetLastError()));
 		goto __exit;
 	}
 
-	DbgPrint("Waiting...\n");
+	// Wait for pipe connection
+	DbgPrint("Waiting for DLL to connect...");
 	if (!comms.ConnectPipe()) {
 		DbgPrint("ConnectPipe(): " + QString::number(::GetLastError()));
 		goto __exit;
 	}
+	
+	// Connect RPC
+	status = m_rpc.Start();
+	if (status) {
+		DbgPrint("Failed to start RPC.\n");
+		goto __exit;
+	}
+	
 	DbgPrint("Client Connected");
 
 	// Read from client
@@ -173,7 +182,7 @@ void MainWindow::on_menu_Load_triggered()
 
 	CloseHandle(hProc);
 
-	DbgPrint("DLL Injected.\n");
+	DbgPrint("DLL Injected.");
 
 	return;
 }
@@ -181,12 +190,24 @@ void MainWindow::on_menu_Load_triggered()
 void MainWindow::on_menu_Unload_triggered()
 {
 	if (!m_pMMData->m_pDllInMemory) {
-		DbgPrint("No DLL injected.\n");
+		DbgPrint("No DLL injected.");
 		return;
 	}
 
-	DbgPrint("Unloading DLL...\n");
+	DbgPrint("Unloading DLL...");
 	if (!m_pMMData->FreeDLL()) {
 		DbgPrint("FreeAll() failed: " + QString::number(GetLastError()));
 	}
 }
+
+void MainWindow::on_chk_Fishing_clicked()
+{
+	unsigned long exception = 0;
+	if (!SetFishing(ui->chk_Fishing->isChecked(), exception)) {
+		DbgPrint(QString("Failed to ") + (ui->chk_Fishing->isChecked() ? "enable" : "disable") + " easy fishing. Error: " + QString::fromStdString(std::to_string(exception)));
+	}
+	else {
+		DbgPrint(QString("Easy fishing ") + (ui->chk_Fishing->isChecked() ? "enabled" : "disabled") + ".");
+	}
+}
+

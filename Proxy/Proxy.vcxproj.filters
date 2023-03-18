@@ -35,6 +35,9 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
+    <Filter Include="RPC">
+      <UniqueIdentifier>{aec0597b-24dc-4256-93ce-f5339a2b2ffa}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ManualMap.cpp">
@@ -52,6 +55,12 @@
     <ClCompile Include="..\Common\PipeManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="RPC.cpp">
+      <Filter>RPC</Filter>
+    </ClCompile>
+    <ClCompile Include="..\CryptIntercept\CryptIntercept\GW2Hack_c.c">
+      <Filter>RPC</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ManualMap.hpp">
@@ -60,11 +69,11 @@
     <QtMoc Include="mainwindow.h">
       <Filter>Header Files</Filter>
     </QtMoc>
-    <ClInclude Include="..\Common\Comms.hpp">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="RPC.hpp">
+      <Filter>RPC</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\PipeManager.hpp">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="..\CryptIntercept\CryptIntercept\GW2Hack_h.h">
+      <Filter>RPC</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

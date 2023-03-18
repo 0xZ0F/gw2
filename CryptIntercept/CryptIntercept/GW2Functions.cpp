@@ -101,19 +101,19 @@ BOOL GW2Functions::ResolveAlertStruct(BOOL fForce)
 	return TRUE;
 }
 
-PlayerFunc_t GW2Functions::GetPlayerFunc()
+GW2Functions::PlayerFunc_t GW2Functions::GetPlayerFunc()
 {
 	ResolvePlayerFunc();
 	return m_fpPlayerFunc;
 }
 
-CryptWrapper_t GW2Functions::GetCryptWrapper()
+GW2Functions::CryptWrapper_t GW2Functions::GetCryptWrapper()
 {
 	ResolveCryptWrapper();
 	return m_fpCryptWrapper;
 }
 
-FishingFunc_t GW2Functions::GetFishingPatch()
+GW2Functions::FishingFunc_t GW2Functions::GetFishingPatch()
 {
 	ResolveFishingPatch();
 	return m_fpFishingPatch;

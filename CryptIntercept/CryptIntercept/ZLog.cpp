@@ -12,10 +12,10 @@ ZLog::~ZLog() {
 	tradeFile.close();
 }
 
-BOOL ZLog::AnyFilesFailed() {
+bool ZLog::AnyFilesFailed() {
 	return dbgFile.fail() || GUIFile.fail() || tradeFile.fail();
 }
 
-VOID ZLog::DbgBox(LPCWSTR str) {
-	MessageBox(NULL, str, L"Z0F", MB_ICONINFORMATION);
+void ZLog::DbgBox(LPCWSTR str) {
+	MessageBoxW(NULL, str, L"Z0F", MB_ICONINFORMATION);
 }
