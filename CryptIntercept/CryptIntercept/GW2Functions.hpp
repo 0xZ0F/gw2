@@ -1,13 +1,19 @@
 #pragma once
 
-using CryptWrapper_t = void* (__fastcall*)(void* unk1, char* pkt, int unk2);
-using FishingFunc_t = void* (__fastcall*)(void* base, INT64 speedMult, void* unk3, void* unk4);
-using PlayerFunc_t = void* (__fastcall*)(void* unk1, void* unk2, void* unk3, void* unk4);
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <Windows.h>
+#include <minwindef.h>
 
 /// <summary>
 /// Handles the resolution of various GW2 functions based on their signatures.
 /// </summary>
 class GW2Functions {
+public:
+	using CryptWrapper_t = void* (__fastcall*)(void* unk1, char* pkt, int unk2);
+	using FishingFunc_t = void* (__fastcall*)(void* base, INT64 speedMult, void* unk3, void* unk4);
+	using PlayerFunc_t = void* (__fastcall*)(void* unk1, void* unk2, void* unk3, void* unk4);
+
 protected:
 	HMODULE m_hModBase;
 
