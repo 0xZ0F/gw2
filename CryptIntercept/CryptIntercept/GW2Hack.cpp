@@ -35,38 +35,47 @@ bool GW2Hack::Start() {
 	zlog.dbgFile << "CryptWrapper: " << funcs.GetCryptWrapper() << std::endl;
 	zlog.dbgFile << "FishingPatch: " << funcs.GetFishingPatch() << std::endl;
 
-	// Instantly complete fishing
-	//*(float*)0x7FF7286555E4 = 5.0f;
+	// Start CryptWrapper_Hook for unencrypted packets
+	LONG error = DetourTransactionBegin();
+	if (error != NO_ERROR) {
+		zlog.dbgFile << "Failed to detour (" << error << ")\n";
+		return FALSE;
+	}
 
-	// Detour Functions
-	//DetourTransactionBegin();
-	//DetourUpdateThread(::GetCurrentThread());
+	error = DetourUpdateThread(GetCurrentThread());
+	if (error != NO_ERROR) {
+		zlog.dbgFile << "Failed to detour (" << error << ")\n";
+		return FALSE;
+	}
 
-	//DetourAttach((PVOID*)&funcs.m_fpCryptWrapper, CryptWrapper_Hook);
-	//DetourAttach((PVOID*)&funcs.m_fpFishingPatch, (PVOID)Fishing_Hook);
-	////DetourAttach((PVOID*)&funcs.m_fpPlayerFunc, (PVOID)PlayerLoad_Hook);
+	error = DetourAttach((PVOID*)&funcs.m_fpCryptWrapper, CryptWrapper_Hook);
+	if (error != NO_ERROR) {
+		zlog.dbgFile << "Failed to detour (" << error << ")\n";
+		return FALSE;
+	}
 
-	//LONG error = DetourTransactionCommit();
-	//if (error != NO_ERROR) {
-	//	zlog.dbgFile << "Failed to detour (" << error << ")\n";
-	//	return FALSE;
-	//}
+	error = DetourTransactionCommit();
+	if (error != NO_ERROR) {
+		zlog.dbgFile << "Failed to detour (" << error << ")\n";
+		return FALSE;
+	}
 
 	return true;
 }
 
 bool GW2Hack::Detach() {
-	if (NO_ERROR != DetourTransactionBegin()) {
+	LONG error = DetourTransactionBegin();
+	if (NO_ERROR != error) {
 		zlog.dbgFile << "Detach() DetourTransactionBegin()\n";
 		return false;
 	}
 
-	if (NO_ERROR != DetourUpdateThread(GetCurrentThread())) {
+	error = DetourUpdateThread(GetCurrentThread());
+	if (NO_ERROR != error) {
 		zlog.dbgFile << "Detach() DetourUpdateThread()\n";
 		return false;
 	}
 
-	LONG error = 0;
 	/*error = DetourDetach((PVOID*)&funcs.m_fpPlayerFunc, (PVOID)PlayerLoad_Hook);
 	if (NO_ERROR != error) {
 		zlog.dbgFile << "Detach() DetourDetach(m_fpPlayerFunc) (" << error << ")\n";
@@ -79,10 +88,12 @@ bool GW2Hack::Detach() {
 		return false;
 	}
 
-	error = DetourDetach((PVOID*)&funcs.m_fpFishingPatch, (PVOID)Fishing_Hook);
-	if (NO_ERROR != error) {
-		zlog.dbgFile << "Detach() DetourDetach(m_fpFishingPatch) (" << error << ")\n";
-		return false;
+	if (m_fFishingState) {
+		error = DetourDetach((PVOID*)&funcs.m_fpFishingPatch, (PVOID)Fishing_Hook);
+		if (NO_ERROR != error) {
+			zlog.dbgFile << "Detach() DetourDetach(m_fpFishingPatch) (" << error << ")\n";
+			return false;
+		}
 	}
 
 	error = DetourTransactionCommit();
@@ -96,8 +107,7 @@ bool GW2Hack::Detach() {
 
 RPC_STATUS GW2Hack::StartRPCServer() {
 	RPC_STATUS status;
-	// Uses the protocol combined with the endpoint for receiving
-	// remote procedure calls.
+
 	status = RpcServerUseProtseqEpA((RPC_CSTR)"ncalrpc", RPC_C_PROTSEQ_MAX_REQS_DEFAULT, (RPC_CSTR)"\\RPC Control\\Z0F", NULL);
 	if (status) {
 		return status;
@@ -108,18 +118,17 @@ RPC_STATUS GW2Hack::StartRPCServer() {
 		return status;
 	}
 
-	// Registers the Example1 interface.
 	status = RpcServerRegisterIf2(GW2Hack_v1_0_s_ifspec, NULL, NULL, RPC_IF_ALLOW_LOCAL_ONLY, RPC_C_LISTEN_MAX_CALLS_DEFAULT, (unsigned)-1, NULL);
 	if (status) {
 		return status;
 	}
 
 	/*
-	Start to listen for remote procedure calls for all registered interfaces.
-	This call will not return until RpcMgmtStopServerListening is called.
+		Start to listen for remote procedure calls for all registered interfaces.
+		This call will not return until RpcMgmtStopServerListening is called.
 
-	Set DontWait to TRUE to return immediately. This thread can continue
-	and clients can still connect and communicate.
+		Set DontWait to TRUE to return immediately. This thread can continue
+		and clients can still connect and communicate.
 	*/
 	status = RpcServerListen(1, RPC_C_LISTEN_MAX_CALLS_DEFAULT, TRUE);
 	if (status) {

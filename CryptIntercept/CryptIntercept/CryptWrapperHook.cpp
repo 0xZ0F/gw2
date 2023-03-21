@@ -27,10 +27,12 @@ void* __fastcall GW2Hack::CryptWrapper_Hook(void* unk1, char* pkt, int pktLen) {
 
 	if (pktLen <= 4096) {
 		if (!m_this->comms.SendPacket(packet)) {
+			m_this->zlog.dbgFile << "SendPacket\n";
 			return m_this->funcs.GetCryptWrapper()(unk1, pkt, pktLen);
 		}
 
 		if (!m_this->comms.RecvPacket(packet)) {
+			m_this->zlog.dbgFile << "RecvPacket\n";
 			return m_this->funcs.GetCryptWrapper()(unk1, pkt, pktLen);
 		}
 
