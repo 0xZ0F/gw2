@@ -56,6 +56,28 @@
         <item>
          <widget class="QPlainTextEdit" name="txt_Out"/>
         </item>
+        <item>
+         <layout class="QVBoxLayout" name="verticalLayout_2">
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_2">
+            <item>
+             <widget class="QCheckBox" name="chk_Fishing">
+              <property name="text">
+               <string>Easy Fishing</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="chk_Zoom">
+              <property name="text">
+               <string>Greater Zoom</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </item>
        </layout>
       </item>
       <item alignment="Qt::AlignRight">
@@ -102,6 +124,11 @@
    </property>
    <property name="shortcut">
     <string>U</string>
+   </property>
+  </action>
+  <action name="actionFishing_Toggle">
+   <property name="text">
+    <string>Fishing Toggle</string>
    </property>
   </action>
  </widget>

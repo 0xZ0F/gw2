@@ -13,11 +13,14 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Source Files\Hooks">
+      <UniqueIdentifier>{b4285d73-e586-42ac-b9b8-bf4402b1938c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="RPC">
+      <UniqueIdentifier>{52a48b57-b615-49a5-91c6-b5b9eb73d8c2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="pch.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Pattern.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -27,15 +30,18 @@
     <ClInclude Include="ZLog.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PipeManager.hpp">
+    <ClInclude Include="GW2Hack.hpp">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GW2Hack_h.h">
+      <Filter>RPC</Filter>
+    </ClInclude>
+    <ClInclude Include="RPC_Common.hpp">
+      <Filter>RPC</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="pch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Pattern.cpp">
@@ -47,8 +53,42 @@
     <ClCompile Include="ZLog.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="PipeManager.cpp">
+    <ClCompile Include="..\..\Common\PipeManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Common\Comms.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GW2Hack.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CryptWrapperHook.cpp">
+      <Filter>Source Files\Hooks</Filter>
+    </ClCompile>
+    <ClCompile Include="FishingHook.cpp">
+      <Filter>Source Files\Hooks</Filter>
+    </ClCompile>
+    <ClCompile Include="PlayerLoadHook.cpp">
+      <Filter>Source Files\Hooks</Filter>
+    </ClCompile>
+    <ClCompile Include="GW2Hack_s.c">
+      <Filter>RPC</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="TODO.txt">
+      <Filter>Resource Files</Filter>
+    </Text>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+    <None Include="GW2Hack.acf">
+      <Filter>RPC</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Midl Include="GW2Hack.idl">
+      <Filter>RPC</Filter>
+    </Midl>
   </ItemGroup>
 </Project>
