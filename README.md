@@ -1,4 +1,4 @@
-# GW2 Hack
+# GW2 Network Proxy
 
 Clone: `git clone --recurse-submodules https://github.com/0xZ0F/gw2.git`
 
