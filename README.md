@@ -1,4 +1,7 @@
-# GW2 Hack
+# GW2 Network Proxy
+
+# Project Not Maintained
+This project is no longer in development and was originally a private project. It's been made public for educational purposes, no support will be provided.
 
 Clone: `git clone --recurse https://github.com/0xZ0F/gw2.git`
 
